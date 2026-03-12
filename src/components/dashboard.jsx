@@ -330,14 +330,14 @@ const Dashboard = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 sm:gap-4 mb-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-4">
           <KPICard icon={FiUsers} label="Total" value={stats.total} colorClass="text-violet-400" accentColor="bg-violet-400" />
           <KPICard icon={FiCheckCircle} label="Selected" value={stats.selected} colorClass="text-emerald-400" accentColor="bg-emerald-400" />
           <KPICard icon={FiXCircle} label="Rejected" value={stats.rejected} colorClass="text-rose-400" accentColor="bg-rose-400" />
           <KPICard icon={FiClock} label="Pending" value={stats.pending} colorClass="text-amber-400" accentColor="bg-amber-400" />
-          <KPICard icon={FiActivity} label="Orientation" value={stats.orientPending} colorClass="text-violet-400" accentColor="bg-violet-400" />
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 sm:gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-3 sm:gap-4 mb-8">
+          <KPICard icon={FiActivity} label="Orient" value={stats.orientPending} colorClass="text-violet-400" accentColor="bg-violet-400" />
           <KPICard icon={FiMessageCircle} label="GD" value={stats.gdSelected} colorClass="text-cyan-400" accentColor="bg-cyan-400" />
           <KPICard icon={FiBookOpen} label="Aptitude" value={stats.aptSelected} colorClass="text-violet-400" accentColor="bg-violet-400" />
           <KPICard icon={FiUserCheck} label="L1" value={stats.l1Selected} colorClass="text-amber-400" accentColor="bg-amber-400" />
