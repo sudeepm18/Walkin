@@ -191,19 +191,19 @@ const UpdateCandidate = () => {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-6 mb-8">
-                  {stage.id !== 'HR' && (
+                  {!['HR', 'L1', 'L2'].includes(stage.id) && (
                     <div className="md:col-span-3">
                       <label className="text-[9px] font-black text-zinc-600 uppercase tracking-widest block mb-2">Round Score</label>
                       <input 
                         type="text" 
                         placeholder="--" 
-                        value={candidate[stage.id === 'GD' ? 'GD Score' : (stage.id === 'L1' ? 'L1 Score' : (stage.id === 'L2' ? 'L2 Score' : 'Score'))] || ""} 
-                        onChange={e => handleUpdateField(stage.id === 'GD' ? 'GD Score' : (stage.id === 'L1' ? 'L1 Score' : (stage.id === 'L2' ? 'L2 Score' : 'Score')), e.target.value)} 
+                        value={candidate[stage.id === 'GD' ? 'GD Score' : 'Score'] || ""} 
+                        onChange={e => handleUpdateField(stage.id === 'GD' ? 'GD Score' : 'Score', e.target.value)} 
                         className="w-full bg-black/40 border border-white/5 rounded-xl h-14 text-center text-xl font-black outline-none focus:border-indigo-400/30 transition-all" 
                       />
                     </div>
                   )}
-                  <div className={stage.id === 'HR' ? 'md:col-span-5' : 'md:col-span-9'}>
+                  <div className={['HR', 'L1', 'L2'].includes(stage.id) ? 'md:col-span-12' : 'md:col-span-9'}>
                     <label className="text-[9px] font-black text-zinc-600 uppercase tracking-widest block mb-2">{stage.id === 'HR' ? 'Final Assigned Role' : 'Assigned Interviewer'}</label>
                     <select value={candidate[stage.id === 'HR' ? 'Final Role' : (stage.id === 'L1' ? 'L1 Interviewer Name' : (stage.id === 'L2' ? 'L2 Interviewer Name' : 'Interviewer Name'))] || ""} onChange={e => handleUpdateField(stage.id === 'HR' ? 'Final Role' : (stage.id === 'L1' ? 'L1 Interviewer Name' : (stage.id === 'L2' ? 'L2 Interviewer Name' : 'Interviewer Name')), e.target.value)} className="w-full bg-black/40 border border-white/5 rounded-xl h-14 px-6 text-xs font-bold outline-none focus:border-indigo-400/30 appearance-none">
                       <option value="">-- Choose --</option>

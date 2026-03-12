@@ -366,26 +366,28 @@ else if (activeTab === 'Aptitude') {
                     {activeTab === 'Aptitude' && (
                       <div className="flex items-center gap-2 border-l border-white/5 pl-3">
                         <div className="flex flex-col gap-1">
-                          <label className="text-[7px] font-black text-zinc-600">Score</label>
-                          <select 
+                          <label className="text-[7px] font-black text-zinc-600">Score</label>                          <input 
+                            type="number"
+                            min="0"
+                            max="25"
+                            placeholder="-"
                             value={cand['Aptitude Marks'] || ""} 
                             onChange={async (e) => { 
                               const val = e.target.value;
-                              const updated = candidates.map(c => c.ID === cand.ID ? { ...c, 'Aptitude Marks': val } : c);
-                              setCandidates(updated);
-
+                              if (val !== "" && (parseInt(val) < 0 || parseInt(val) > 25)) return;
+                              
+                              const updatedCand = { ...cand, 'Aptitude Marks': val };
+                              setCandidates(candidates.map(c => c.ID === cand.ID ? updatedCand : c));
+        
                               const scriptUrl = localStorage.getItem('walkin_script_url');
                               if (scriptUrl) {
                                 try {
-                                  await pushToGoogleSheet(scriptUrl, updated);
+                                  await pushToGoogleSheet(scriptUrl, updatedCand);
                                 } catch (err) { console.error("Sync failed:", err); }
                               }
                             }} 
-                            className="bg-[#090b10] border border-white/10 rounded-lg h-8 px-1 text-[9px] font-black text-indigo-400 outline-none w-12"
-                          >
-                            <option value="">-</option>
-                            {[...Array(10)].map((_, i) => <option key={i+1} value={i+1}>{i+1}</option>)}
-                          </select>
+                            className="bg-[#090b10] border border-white/10 rounded-lg h-8 px-2 text-[10px] font-black text-indigo-400 outline-none w-12 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          />
                         </div>
                         <div className="flex flex-col gap-1">
                           <label className="text-[7px] font-black text-zinc-600">SET</label>
@@ -393,13 +395,13 @@ else if (activeTab === 'Aptitude') {
                             value={cand['Aptitude SET'] || ""} 
                             onChange={async (e) => { 
                               const val = e.target.value;
-                              const updated = candidates.map(c => c.ID === cand.ID ? { ...c, 'Aptitude SET': val } : c);
-                              setCandidates(updated);
+                              const updatedCand = { ...cand, 'Aptitude SET': val };
+                              setCandidates(candidates.map(c => c.ID === cand.ID ? updatedCand : c));
 
                               const scriptUrl = localStorage.getItem('walkin_script_url');
                               if (scriptUrl) {
                                 try {
-                                  await pushToGoogleSheet(scriptUrl, updated);
+                                  await pushToGoogleSheet(scriptUrl, updatedCand);
                                 } catch (err) { console.error("Sync failed:", err); }
                               }
                             }} 

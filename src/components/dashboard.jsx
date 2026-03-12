@@ -161,7 +161,7 @@ const Dashboard = () => {
   const [selectedRole, setSelectedRole] = useState(null);
   const [selectedCandidateForDrawer, setSelectedCandidateForDrawer] = useState(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [showAllCandidates, setShowAllCandidates] = useState(false);
+  const [showAllCandidates, setShowAllCandidates] = useState(true);
   const [expFilter, setExpFilter] = useState("all"); // "all", "exp", "fresher"
 
   const handleManualSync = useCallback(async () => {
@@ -242,7 +242,8 @@ const Dashboard = () => {
     const aptSelected = sourceData.filter(c => c.currentStage === 'L1').length;
     const l1Selected = sourceData.filter(c => c.currentStage === 'L2').length;
     const l2Selected = sourceData.filter(c => c.currentStage === 'HR').length;
-    return { total, selected, rejected, pending, gdSelected, aptSelected, l1Selected, l2Selected };
+    const orientSelected = sourceData.filter(c => c['Orientation(Agree & Disagree)'] === 'Selected' || c.stages[0].isCompleted).length;
+    return { total, selected, rejected, pending, gdSelected, aptSelected, l1Selected, l2Selected, orientSelected };
   }, [candidatesFilteredByExp, selectedRole]);
 
   const positions = useMemo(() => {
@@ -351,7 +352,7 @@ const Dashboard = () => {
           <section className="bg-[#0d1117]/50 border border-white/5 rounded-[24px] overflow-hidden flex flex-col h-[500px] lg:h-[700px]">
             <div className="p-6 pb-4 flex items-center justify-between border-b border-white/5">
               <h3 className="text-sm font-black uppercase tracking-widest text-indigo-400 truncate">
-                {selectedRole ? `Stream: ${selectedRole}` : "All Candidates"}
+                {selectedRole ? `Stream: ${selectedRole}` : "Total Candidates"}
               </h3>
               <div className="flex items-center gap-3">
                 <button 
@@ -361,11 +362,11 @@ const Dashboard = () => {
                       ? 'bg-indigo-600/20 border-indigo-500/30 text-indigo-400' 
                       : 'bg-white/5 border-white/10 text-zinc-500 hover:text-white'
                   }`}
-                >
-                  {showAllCandidates ? "Showing All" : "Pipeline Only"}
+                ><span className='mr-2'>FootFall :</span>
+                  {showAllCandidates ? `${stats.orientSelected} / ${stats.total}` : "Pipeline Only"}
                 </button>
                 {selectedRole && <button onClick={() => setSelectedRole(null)} className="text-[9px] font-black uppercase text-zinc-500 hover:text-white">Clear</button>}
-                <span className="text-[10px] font-black text-zinc-500">{filteredCandidates.length}</span>
+                {/* <span className="text-[10px] font-black text-zinc-500">{filteredCandidates.length}</span> */}
               </div>
             </div>
             <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 no-scrollbar">
