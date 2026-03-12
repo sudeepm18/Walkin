@@ -78,6 +78,13 @@ const UpdateCandidate = () => {
         stages.forEach(s => { if (!withDefaults[s.field]) withDefaults[s.field] = 'Pending'; });
         if (!withDefaults['Final Role']) withDefaults['Final Role'] = "";
         setCandidate(withDefaults);
+        
+        // Find first unlocked editable stage
+        const editableStages = stages.filter(s => !s.readOnly);
+        const firstUnlocked = editableStages.find(s => !isStageLocked(withDefaults, s));
+        if (firstUnlocked) {
+          setActiveStage(firstUnlocked.id);
+        }
       }
     }
   }, [candidateId, stages, contextCandidates]);
@@ -138,7 +145,7 @@ const UpdateCandidate = () => {
             </div>
             <div className="flex flex-wrap justify-center md:justify-start items-center gap-x-6 gap-y-2 text-zinc-500 text-xs font-medium">
               <span className="flex items-center gap-1.5"><FiUser className="text-indigo-400" /> {candidate['Role Applied For?']}</span>
-              <span className="flex items-center gap-1.5"><FiMail className="text-indigo-400" /> {candidate['Email Address']?.split('@')[0]}...</span>
+              <span className="flex items-center gap-1.5"><FiMail className="text-indigo-400" /> {candidate['Email Address'] || 'N/A'}</span>
               <span className="flex items-center gap-1.5"><FiPhone className="text-indigo-400" /> {candidate['Phone Number']}</span>
             </div>
           </div>
@@ -173,8 +180,14 @@ const UpdateCandidate = () => {
               <div 
                 key={stage.id} 
                 onClick={() => !locked && setActiveStage(stage.id)}
-                className={`bg-[#0d1117]/80 border-2 rounded-[32px] p-6 sm:p-8 transition-all duration-500 cursor-pointer ${stage.id === activeStage ? 'border-indigo-500/30 scale-[1.01] opacity-100 ring-1 ring-indigo-500/20' : 'border-white/5 opacity-40 hover:opacity-70'}`}
+                className={`bg-[#0d1117]/80 border-2 rounded-[32px] p-6 sm:p-8 transition-all duration-500 relative overflow-hidden ${locked ? 'opacity-30 cursor-not-allowed border-white/2' : (stage.id === activeStage ? 'border-indigo-500/30 scale-[1.01] opacity-100 ring-1 ring-indigo-500/20 cursor-default' : 'border-white/5 opacity-40 hover:opacity-70 cursor-pointer')}`}
               >
+                {locked && (
+                  <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px] z-10 flex flex-col items-center justify-center gap-2">
+                    <FiLock className="text-zinc-500" size={32} />
+                    <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Stage Locked</span>
+                  </div>
+                )}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-8">
                   <div className="flex items-center gap-4">
                     <div className={`w-12 h-12 rounded-2xl flex items-center justify-center bg-white/5 ${stage.id === activeStage ? 'text-indigo-400 shadow-xl' : 'text-zinc-700'}`}>
@@ -197,31 +210,47 @@ const UpdateCandidate = () => {
                       <input 
                         type="text" 
                         placeholder="--" 
+                        disabled={locked}
                         value={candidate[stage.id === 'GD' ? 'GD Score' : 'Score'] || ""} 
                         onChange={e => handleUpdateField(stage.id === 'GD' ? 'GD Score' : 'Score', e.target.value)} 
-                        className="w-full bg-black/40 border border-white/5 rounded-xl h-14 text-center text-xl font-black outline-none focus:border-indigo-400/30 transition-all" 
+                        className="w-full bg-black/40 border border-white/5 rounded-xl h-14 text-center text-xl font-black outline-none focus:border-indigo-400/30 transition-all disabled:opacity-50" 
                       />
                     </div>
                   )}
                   <div className={['HR', 'L1', 'L2'].includes(stage.id) ? 'md:col-span-12' : 'md:col-span-9'}>
                     <label className="text-[9px] font-black text-zinc-600 uppercase tracking-widest block mb-2">{stage.id === 'HR' ? 'Final Assigned Role' : 'Assigned Interviewer'}</label>
-                    <select value={candidate[stage.id === 'HR' ? 'Final Role' : (stage.id === 'L1' ? 'L1 Interviewer Name' : (stage.id === 'L2' ? 'L2 Interviewer Name' : 'Interviewer Name'))] || ""} onChange={e => handleUpdateField(stage.id === 'HR' ? 'Final Role' : (stage.id === 'L1' ? 'L1 Interviewer Name' : (stage.id === 'L2' ? 'L2 Interviewer Name' : 'Interviewer Name')), e.target.value)} className="w-full bg-black/40 border border-white/5 rounded-xl h-14 px-6 text-xs font-bold outline-none focus:border-indigo-400/30 appearance-none">
+                    <select 
+                      disabled={locked}
+                      value={candidate[stage.id === 'HR' ? 'Final Role' : (stage.id === 'L1' ? 'L1 Interviewer Name' : (stage.id === 'L2' ? 'L2 Interviewer Name' : 'Interviewer Name'))] || ""} 
+                      onChange={e => handleUpdateField(stage.id === 'HR' ? 'Final Role' : (stage.id === 'L1' ? 'L1 Interviewer Name' : (stage.id === 'L2' ? 'L2 Interviewer Name' : 'Interviewer Name')), e.target.value)} 
+                      className="w-full bg-black/40 border border-white/5 rounded-xl h-14 px-6 text-xs font-bold outline-none focus:border-indigo-400/30 appearance-none disabled:opacity-50"
+                    >
                       <option value="">-- Choose --</option>
-                      {stage.id === 'HR' ? availableRoles.map(r => <option key={r} value={r} className="bg-[#0d1117]">{r}</option>) : availableInterviewers.map(i => <option key={i.id} value={i.name} className="bg-[#0d1117]">{i.name}</option>)}
+                      {stage.id === 'HR' ? (
+                        ['Data Analyst', 'Data Engineer', 'Data Scientist', 'AI Engineer', 'Full Stack Developer'].map(r => (
+                          <option key={r} value={r} className="bg-[#0d1117]">{r}</option>
+                        ))
+                      ) : (
+                        availableInterviewers.map(i => (
+                          <option key={i.id} value={i.name} className="bg-[#0d1117]">{i.name}</option>
+                        ))
+                      )}
                     </select>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-3 gap-3 mb-8">
-                  <button onClick={() => handleUpdateField(stage.field, 'Selected')} className={`h-12 rounded-xl border flex items-center justify-center gap-2 text-[10px] font-black uppercase transition-all ${currentStatus === 'Selected' ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400 shadow-lg shadow-emerald-500/10' : 'border-white/5 text-zinc-600'}`}><FiCheck /> Selected</button>
-                  <button onClick={() => handleUpdateField(stage.field, 'Pending')} className={`h-12 rounded-xl border flex items-center justify-center gap-2 text-[10px] font-black uppercase transition-all ${currentStatus === 'Pending' ? 'bg-amber-500/10 border-amber-500 text-amber-400' : 'border-white/5 text-zinc-600'}`}><FiClock /> Pending</button>
-                  <button onClick={() => handleUpdateField(stage.field, 'Rejected')} className={`h-12 rounded-xl border flex items-center justify-center gap-2 text-[10px] font-black uppercase transition-all ${currentStatus === 'Rejected' ? 'bg-rose-500/10 border-rose-500 text-rose-400' : 'border-white/5 text-zinc-600'}`}><FiX /> Rejected</button>
+                  <button disabled={locked} onClick={() => handleUpdateField(stage.field, 'Selected')} className={`h-12 rounded-xl border flex items-center justify-center gap-2 text-[10px] font-black uppercase transition-all ${currentStatus === 'Selected' ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400 shadow-lg shadow-emerald-500/10' : 'border-white/5 text-zinc-600'} disabled:opacity-50`}><FiCheck /> Selected</button>
+                  <button disabled={locked} onClick={() => handleUpdateField(stage.field, 'Pending')} className={`h-12 rounded-xl border flex items-center justify-center gap-2 text-[10px] font-black uppercase transition-all ${currentStatus === 'Pending' ? 'bg-amber-500/10 border-amber-500 text-amber-400' : 'border-white/5 text-zinc-600'} disabled:opacity-50`}><FiClock /> Pending</button>
+                  <button disabled={locked} onClick={() => handleUpdateField(stage.field, 'Rejected')} className={`h-12 rounded-xl border flex items-center justify-center gap-2 text-[10px] font-black uppercase transition-all ${currentStatus === 'Rejected' ? 'bg-rose-500/10 border-rose-500 text-rose-400' : 'border-white/5 text-zinc-600'} disabled:opacity-50`}><FiX /> Rejected</button>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-[9px] font-black text-zinc-600 uppercase tracking-widest">Interviewer Notes</label>
-                  <textarea placeholder="Candidate show good potential in..." value={candidate[stage.id === 'L1' ? 'L1 Comments' : (stage.id === 'L2' ? 'L2Comments' : 'Comments')] || ""} onChange={e => handleUpdateField(stage.id === 'L1' ? 'L1 Comments' : (stage.id === 'L2' ? 'L2Comments' : 'Comments'), e.target.value)} className="w-full bg-black/40 border border-white/5 rounded-2xl h-24 p-5 text-sm outline-none focus:border-indigo-400/30 resize-none transition-all" />
-                </div>
+                {stage.id !== 'HR' && (
+                  <div className="space-y-2">
+                    <label className="text-[9px] font-black text-zinc-600 uppercase tracking-widest">Interviewer Notes</label>
+                    <textarea disabled={locked} placeholder="Candidate show good potential in..." value={candidate[stage.id === 'L1' ? 'L1 Comments' : (stage.id === 'L2' ? 'L2Comments' : 'Comments')] || ""} onChange={e => handleUpdateField(stage.id === 'L1' ? 'L1 Comments' : (stage.id === 'L2' ? 'L2Comments' : 'Comments'), e.target.value)} className="w-full bg-black/40 border border-white/5 rounded-2xl h-24 p-5 text-sm outline-none focus:border-indigo-400/30 resize-none transition-all disabled:opacity-50" />
+                  </div>
+                )}
               </div>
             );
           })}

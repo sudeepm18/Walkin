@@ -192,8 +192,10 @@ const Dashboard = () => {
       const l1Status = getStatus(cand['L1(selected /Rejected)']);
       const l2Status = getStatus(cand['L2(Selected /Rejected)']);
       const hrStatus = getStatus(cand['HR Round Status']);
+      const statuses = [orientStatus, gdStatus, aptStatus, l1Status, l2Status, hrStatus];
+      const firstNonSelected = statuses.find(s => s !== 'Selected') || 'Selected';
       const isOffer = hrStatus === 'Selected';
-      const isRejected = [orientStatus, gdStatus, aptStatus, l1Status, l2Status, hrStatus].includes('Rejected');
+      const isRejected = firstNonSelected === 'Rejected';
       const lastCompletedStage = isOffer ? 'HR' : (
         l2Status === 'Selected' ? 'L2' : 
         l1Status === 'Selected' ? 'L1' : 
@@ -238,12 +240,14 @@ const Dashboard = () => {
     const selected = sourceData.filter(c => c.status === 'Selected').length;
     const rejected = sourceData.filter(c => c.status === 'Rejected').length;
     const pending = total - selected - rejected;
-    const gdSelected = sourceData.filter(c => c.currentStage === 'Aptitude').length;
-    const aptSelected = sourceData.filter(c => c.currentStage === 'L1').length;
-    const l1Selected = sourceData.filter(c => c.currentStage === 'L2').length;
-    const l2Selected = sourceData.filter(c => c.currentStage === 'HR').length;
-    const orientSelected = sourceData.filter(c => c['Orientation(Agree & Disagree)'] === 'Selected' || c.stages[0].isCompleted).length;
-    return { total, selected, rejected, pending, gdSelected, aptSelected, l1Selected, l2Selected, orientSelected };
+    const gdSelected = sourceData.filter(c => (c['Orientation(Agree & Disagree)'] === 'Selected' || c['Orientation(Agree & Disagree)'] === 'Agree') && c['GD Status'] === 'Pending' && c.status !== 'Rejected').length;
+    const aptSelected = sourceData.filter(c => c['GD Status'] === 'Selected' && c['Aptitude Status'] === 'Pending' && c.status !== 'Rejected').length;
+    const l1Selected = sourceData.filter(c => c['Aptitude Status'] === 'Selected' && c['L1(selected /Rejected)'] === 'Pending' && c.status !== 'Rejected').length;
+    const l2Selected = sourceData.filter(c => c['L1(selected /Rejected)'] === 'Selected' && c['L2(Selected /Rejected)'] === 'Pending' && c.status !== 'Rejected').length;
+    const orientSelected = sourceData.filter(c => (c['Orientation(Agree & Disagree)'] === 'Selected' || c['Orientation(Agree & Disagree)'] === 'Agree')).length;
+    const orientPending = sourceData.filter(c => c['Orientation(Agree & Disagree)'] === 'Pending' && c.status !== 'Rejected').length;
+    const hrPending = sourceData.filter(c => c['L2(Selected /Rejected)'] === 'Selected' && c['HR Round Status'] === 'Pending' && c.status !== 'Rejected').length;
+    return { total, selected, rejected, pending, gdSelected, aptSelected, l1Selected, l2Selected, orientSelected, orientPending, hrPending };
   }, [candidatesFilteredByExp, selectedRole]);
 
   const positions = useMemo(() => {
@@ -267,7 +271,10 @@ const Dashboard = () => {
   }, [candidatesFilteredByExp]);
 
   const filteredCandidates = candidatesFilteredByExp.filter(c => {
-    const matchesSearch = c.name.toLowerCase().includes(searchTerm.toLowerCase()) || c.position.toLowerCase().includes(searchTerm.toLowerCase());
+    const s = searchTerm.toLowerCase();
+    const matchesSearch = c.name.toLowerCase().includes(s) || 
+                         c.position.toLowerCase().includes(s) || 
+                         String(c.ID).toLowerCase().includes(s);
     const matchesRole = selectedRole ? c.position === selectedRole : true;
     const matchesPipeline = showAllCandidates ? true : c.lastCompletedStage !== null;
     return matchesSearch && matchesRole && matchesPipeline;
@@ -317,23 +324,25 @@ const Dashboard = () => {
               </select>
               <div className="relative flex-1">
                 <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" />
-                <input type="text" placeholder="Search..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="bg-[#0d1117] border border-white/10 rounded-xl py-2.5 sm:py-3 pl-12 pr-6 text-sm outline-none w-full sm:w-64 focus:border-indigo-500/50" />
+                <input type="text" placeholder="Search ID or Name..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="bg-[#0d1117] border border-white/10 rounded-xl py-2.5 sm:py-3 pl-12 pr-6 text-sm outline-none w-full sm:w-64 focus:border-indigo-500/50" />
               </div>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-4">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 sm:gap-4 mb-4">
           <KPICard icon={FiUsers} label="Total" value={stats.total} colorClass="text-violet-400" accentColor="bg-violet-400" />
           <KPICard icon={FiCheckCircle} label="Selected" value={stats.selected} colorClass="text-emerald-400" accentColor="bg-emerald-400" />
           <KPICard icon={FiXCircle} label="Rejected" value={stats.rejected} colorClass="text-rose-400" accentColor="bg-rose-400" />
           <KPICard icon={FiClock} label="Pending" value={stats.pending} colorClass="text-amber-400" accentColor="bg-amber-400" />
+          <KPICard icon={FiActivity} label="Orientation" value={stats.orientPending} colorClass="text-violet-400" accentColor="bg-violet-400" />
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 sm:gap-4 mb-8">
           <KPICard icon={FiMessageCircle} label="GD" value={stats.gdSelected} colorClass="text-cyan-400" accentColor="bg-cyan-400" />
           <KPICard icon={FiBookOpen} label="Aptitude" value={stats.aptSelected} colorClass="text-violet-400" accentColor="bg-violet-400" />
           <KPICard icon={FiUserCheck} label="L1" value={stats.l1Selected} colorClass="text-amber-400" accentColor="bg-amber-400" />
           <KPICard icon={FiTarget} label="L2" value={stats.l2Selected} colorClass="text-emerald-400" accentColor="bg-emerald-400" />
+          <KPICard icon={FiAward} label="HR" value={stats.hrPending} colorClass="text-indigo-400" accentColor="bg-indigo-400" />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-[350px_1fr] gap-6">
