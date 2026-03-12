@@ -1,14 +1,8 @@
 {
-  "name": "walkin-18",
+  "name": "Walk-in-management",
   "version": "0.0.1",
   "size": {
     "width": 3,
     "height": 3
-  },
-  "workflowMapping": [],
-  "packagesMapping": [],
-  "datasetsMapping": [],
-  "collectionsMapping": [],
-  "fileName": "index.json",
-  "id": "1acb2d2a-6019-417e-9f4a-4d389a2a7ae4"
+  }
 }

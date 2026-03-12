@@ -71,30 +71,36 @@ export const syncCandidates = async (url) => {
       
       let merged = existingCand ? { ...existingCand, ...newCand } : { ...newCand };
 
-      // Ensure all status fields default to 'Pending' if currently empty/missing
+      // Intelligent Status Merging:
+      // If Excel (newCand) is 'Pending' or empty, but Local (existingCand) has a 'strong' status (Selected/Rejected/Agree), 
+      // we keep the local status until the user successfully saves it to Excel.
       statusFields.forEach(field => {
-        if (!merged[field] || merged[field].trim() === "") {
-          merged[field] = 'Pending';
+        const newVal = (newCand[field] || "").trim();
+        const existingVal = existingCand ? (existingCand[field] || "").trim() : "";
+        
+        // Strong local statuses to protect
+        const strongStatuses = ["Selected", "Rejected", "Agree", "Disagree", "Pass", "selected", "rejected"];
+        
+        if ((newVal === "" || newVal === "Pending") && strongStatuses.includes(existingVal)) {
+          merged[field] = existingVal;
+        } else {
+          merged[field] = newVal || "Pending";
         }
       });
 
+      // Intelligent Meta Merging:
+      // Carry over local metadata (scores, comments, etc) if Excel is currently empty for those fields
       if (existingCand) {
-        // Carry over existing values if newCand field is empty (to avoid overwriting progress if sync is partial)
-        statusFields.forEach(field => {
-          if (!newCand[field] && existingCand[field]) {
-            merged[field] = existingCand[field];
-          }
-        });
-        
-        // Ensure specific metadata also carries over if missing in sync
         const metaFields = [
           'Aptitude SET', 'Aptitude Marks', 'L1 Interviewer Name', 
-          'L1 Comments', 'L2 Interviewer Name', 'L2Comments', 
-          'Final Role', 'HR Interviewer Name'
+          'L1 Comments', 'L1 Score', 'L2 Interviewer Name', 'L2Comments', 
+          'L2 Score', 'Final Role', 'HR Interviewer Name', 'GD Score', 'Comments'
         ];
         metaFields.forEach(field => {
-          if (!newCand[field] && existingCand[field]) {
-            merged[field] = existingCand[field];
+          const newVal = (newCand[field] || "").trim();
+          const existingVal = (existingCand[field] || "").trim();
+          if (newVal === "" && existingVal !== "") {
+            merged[field] = existingVal;
           }
         });
       }
