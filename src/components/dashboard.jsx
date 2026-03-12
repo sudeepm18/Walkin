@@ -2,13 +2,14 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import logo from '../assets/logo.png'
 import { 
-  FiSearch, FiCalendar, FiMapPin, FiUsers, FiCheckCircle, 
+  FiSearch, FiUsers, FiCheckCircle, 
   FiXCircle, FiClock, FiMessageCircle, FiBookOpen, 
   FiUserCheck, FiTarget, FiChevronRight, FiArrowLeft, FiEdit3, FiLayout,
-  FiActivity, FiAward, FiRefreshCw
+  FiActivity, FiAward, FiRefreshCw, FiDownload
 } from 'react-icons/fi';
 import { syncCandidates } from '../services/syncService';
 import CandidateDrawer from './CandidateDrawer';
+import { exportCandidatesToExcel } from '../lib/excelExport';
 
 const KPICard = ({ icon: Icon, label, value, colorClass, accentColor }) => (
   <div className={`bg-[#0d121d] border border-white/5 p-4 sm:p-5 rounded-[22px] flex items-center gap-4 sm:gap-5 group hover:bg-[#111827] transition-all duration-300 relative overflow-hidden h-20 sm:h-24`}>
@@ -158,15 +159,21 @@ const Dashboard = () => {
   const [selectedCandidateForDrawer, setSelectedCandidateForDrawer] = useState(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   
+  const [lastSynced, setLastSynced] = useState(localStorage.getItem('walkin_last_sync') || "");
+  
   const loadCandidates = () => {
     const data = localStorage.getItem('walkin_candidates');
+    const time = localStorage.getItem('walkin_last_sync');
+    console.log(`[Dashboard] Loading candidates. Found: ${data ? JSON.parse(data).length : 0} items. Last Sync: ${time}`);
     if (data) setCandidatesRaw(JSON.parse(data));
+    if (time) setLastSynced(time);
   };
 
   useEffect(() => {
     loadCandidates();
     const handleSyncStart = () => setIsSyncing(true);
     const handleSyncComplete = () => {
+      console.log("[Dashboard] Sync Complete Event Received");
       setIsSyncing(false);
       loadCandidates();
     };
@@ -185,13 +192,26 @@ const Dashboard = () => {
     if (!url) return;
     setIsSyncing(true);
     try {
-      await syncCandidates(url);
+      console.log("[Dashboard] Starting Manual Sync...");
+      const updatedData = await syncCandidates(url);
+      const time = new Date().toLocaleTimeString();
+      localStorage.setItem('walkin_last_sync', time);
+      console.log(`[Dashboard] Manual Sync Success! Received ${updatedData.length} items.`);
       loadCandidates();
     } catch (error) {
       console.error("Dashboard sync failed:", error);
     } finally {
       setIsSyncing(false);
     }
+  };
+
+  // Proactive sync on mount
+  useEffect(() => {
+    handleManualSync();
+  }, []);
+
+  const handleExport = () => {
+    exportCandidatesToExcel(candidatesRaw);
   };
 
   const candidates = useMemo(() => {
@@ -296,14 +316,18 @@ const Dashboard = () => {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            {isSyncing && (
-              <div className="flex items-center gap-2 px-4 py-2 bg-indigo-500/10 border border-indigo-500/20 rounded-xl animate-pulse">
-                <FiRefreshCw className="text-indigo-400 animate-spin w-3 h-3" />
-                <span className="text-[9px] font-black uppercase tracking-widest text-indigo-400">Syncing...</span>
-              </div>
+            {lastSynced && !isSyncing && (
+              <span className="text-[8px] font-black uppercase tracking-widest text-zinc-600 hidden md:inline">Last Sync: {lastSynced}</span>
             )}
-            <button onClick={handleManualSync} disabled={isSyncing} className="w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center rounded-xl bg-[#0d1117] border border-white/10 text-zinc-400">
+            <button onClick={handleManualSync} disabled={isSyncing} className="w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center rounded-xl bg-[#0d1117] border border-white/10 text-zinc-400 hover:text-white transition-all">
               <FiRefreshCw className={isSyncing ? 'animate-spin' : ''} />
+            </button>
+            <button 
+              onClick={handleExport}
+              className="w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center rounded-xl bg-indigo-600/10 border border-indigo-500/20 text-indigo-400 hover:bg-indigo-600/20 transition-all"
+              title="Export to Excel"
+            >
+              <FiDownload />
             </button>
             <div className="relative flex-1 sm:flex-initial min-w-[200px]">
               <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" />

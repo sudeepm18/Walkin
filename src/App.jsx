@@ -16,13 +16,13 @@ function App() {
       const sheetUrl = localStorage.getItem('walkin_sheet_url');
       if (!sheetUrl) return;
 
-      console.log("[App] Background sync starting...");
-      window.dispatchEvent(new Event('sync-start')); 
       try {
-        await syncCandidates(sheetUrl);
+        const result = await syncCandidates(sheetUrl);
+        const time = new Date().toLocaleTimeString();
+        localStorage.setItem('walkin_last_sync', time);
         // Dispatch event so Dashboard/PreScreen components refresh their UI
         window.dispatchEvent(new Event('sync-complete'));
-        console.log("[App] Background sync completed.");
+        console.log(`[App] Background sync success! Fetched ${result?.length || 0} items at ${time}`);
       } catch (error) {
         console.error("[App] Background sync failed:", error);
         window.dispatchEvent(new Event('sync-complete')); // Clear loading state even on error
@@ -32,8 +32,8 @@ function App() {
     // Initial sync on app load
     performSync();
 
-    // Periodic sync every 1 minute (60000ms) for tighter updates
-    const interval = setInterval(performSync, 60000);
+    // Periodic sync every 2 seconds (2000ms) for ultra-real-time updates
+    const interval = setInterval(performSync, 2000);
     
     return () => clearInterval(interval);
   }, []);

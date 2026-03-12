@@ -5,7 +5,7 @@ import {
   FiClock, FiXCircle, FiSave, FiSearch,
   FiActivity, FiMessageCircle, FiBookOpen, FiChevronRight, FiMenu, FiX
 } from 'react-icons/fi';
-import { updateCandidateLocally, updateCandidatesLocallyBulk, pushToGoogleSheet } from '../services/syncService';
+import { updateCandidateLocally, updateCandidatesLocallyBulk, pushToGoogleSheet, syncCandidates } from '../services/syncService';
 
 const PreScreen = () => {
   const navigate = useNavigate();
@@ -48,13 +48,47 @@ const PreScreen = () => {
 
   const loadCandidates = () => {
     const data = localStorage.getItem('walkin_candidates');
+    console.log(`[PreScreen] Loading candidates. Found: ${data ? JSON.parse(data).length : 0} items.`);
     if (data) setCandidates(JSON.parse(data));
   };
 
   useEffect(() => {
     loadCandidates();
+    const handleSyncStart = () => {
+      console.log("[PreScreen] Sync Start Event Received");
+      setIsSaving(true);
+    };
+    const handleSyncComplete = () => {
+      console.log("[PreScreen] Sync Complete Event Received");
+      setIsSaving(false);
+      loadCandidates();
+    };
     window.addEventListener('storage', loadCandidates);
-    return () => window.removeEventListener('storage', loadCandidates);
+    window.addEventListener('sync-start', handleSyncStart);
+    window.addEventListener('sync-complete', handleSyncComplete);
+    return () => {
+      window.removeEventListener('storage', loadCandidates);
+      window.removeEventListener('sync-start', handleSyncStart);
+      window.removeEventListener('sync-complete', handleSyncComplete);
+    };
+  }, []);
+
+  // Proactive sync on mount
+  useEffect(() => {
+    const autoSync = async () => {
+      const url = localStorage.getItem('walkin_sheet_url');
+      if (!url) return;
+      try {
+        setIsSaving(true);
+        await syncCandidates(url);
+        loadCandidates();
+      } catch (err) {
+        console.error("PreScreen auto-sync failed:", err);
+      } finally {
+        setIsSaving(false);
+      }
+    };
+    autoSync();
   }, []);
 
   const filteredCandidates = useMemo(() => {

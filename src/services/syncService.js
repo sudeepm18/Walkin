@@ -9,7 +9,17 @@ const getCsvUrl = (url) => {
   if (match && match[1]) {
     const gidMatch = url.match(/[#&]gid=([0-9]+)/);
     const base = `https://docs.google.com/spreadsheets/d/${match[1]}/export?format=csv`;
-    return gidMatch ? `${base}&gid=${gidMatch[1]}` : base;
+    const finalUrl = gidMatch ? `${base}&gid=${gidMatch[1]}` : base;
+    
+    // Mega cache buster for Google Sheets
+    // 1. Precise timestamp
+    // 2. Random string
+    // 3. Date-based minute string
+    const now = new Date();
+    const minuteBuster = `${now.getFullYear()}${now.getMonth()}${now.getDate()}${now.getHours()}${now.getMinutes()}`;
+    const rand = Math.random().toString(36).substring(7);
+    
+    return `${finalUrl}&t=${Date.now()}&mb=${minuteBuster}&r=${rand}`;
   }
   return url;
 };
@@ -25,13 +35,16 @@ export const fetchSpreadsheetData = async (url) => {
       download: true,
       header: true,
       skipEmptyLines: true,
+      transformHeader: (h) => h.trim(),
       complete: (results) => {
         if (results.errors.length > 0) {
           console.error('PapaParse Errors:', results.errors);
         }
+        console.log(`[SyncService] Fetched ${results.data?.length || 0} rows from Google.`);
         resolve(results.data);
       },
       error: (error) => {
+        console.error('Fetch Spreadsheet Data Failed:', error);
         reject(error);
       }
     });
