@@ -1,5 +1,43 @@
 import Papa from 'papaparse';
 
+export const STATUS_FIELDS = [
+  'Orientation(Agree & Disagree)', 
+  'GD Status', 
+  'Aptitude Status', 
+  'L1(selected /Rejected)', 
+  'L2(Selected /Rejected)', 
+  'HR Round Status'
+];
+
+/**
+ * Normalizes a status value to official 'Selected', 'Rejected', or 'Pending'.
+ */
+export const normalizeStatus = (val) => {
+  const raw = (val || "").toString().trim().toLowerCase();
+  if (["selected", "agree", "pass", "shortlisted"].includes(raw)) return "Selected";
+  if (["rejected", "disagree", "fail", "not candidate"].includes(raw)) return "Rejected";
+  return "Pending";
+};
+
+/**
+ * Cascades rejection to all subsequent rounds if a candidate is rejected.
+ */
+export const getCascadedCandidate = (candidate, updatedField, newValue) => {
+  const updated = { ...candidate, [updatedField]: newValue };
+  
+  if (newValue === 'Rejected') {
+    const fieldIndex = STATUS_FIELDS.indexOf(updatedField);
+    if (fieldIndex !== -1) {
+      // Mark all rounds AFTER this one as Rejected
+      for (let i = fieldIndex + 1; i < STATUS_FIELDS.length; i++) {
+        updated[STATUS_FIELDS[i]] = 'Rejected';
+      }
+    }
+  }
+  
+  return updated;
+};
+
 /**
  * Converts a Google Sheets URL to a CSV export URL.
  */
@@ -58,59 +96,24 @@ export const syncCandidates = async (url) => {
   try {
     const freshData = await fetchSpreadsheetData(url);
     
-    const existingCandidatesStr = localStorage.getItem('walkin_candidates');
-    const existingCandidates = existingCandidatesStr ? JSON.parse(existingCandidatesStr) : [];
-    
-    const statusFields = [
-      'Orientation(Agree & Disagree)', 'GD Status', 'Aptitude Status', 
-      'L1(selected /Rejected)', 'L2(Selected /Rejected)', 'HR Round Status'
-    ];
 
-    const mergedData = freshData.map(newCand => {
-      const existingCand = existingCandidates.find(c => String(c.ID) === String(newCand.ID));
-      
-      let merged = existingCand ? { ...existingCand, ...newCand } : { ...newCand };
 
-      // Intelligent Status Merging:
-      // If Excel (newCand) is 'Pending' or empty, but Local (existingCand) has a 'strong' status (Selected/Rejected/Agree), 
-      // we keep the local status until the user successfully saves it to Excel.
-      statusFields.forEach(field => {
-        const newVal = (newCand[field] || "").trim();
-        const existingVal = existingCand ? (existingCand[field] || "").trim() : "";
-        
-        // Strong local statuses to protect
-        const strongStatuses = ["Selected", "Rejected", "Agree", "Disagree", "Pass", "selected", "rejected"];
-        
-        if ((newVal === "" || newVal === "Pending") && strongStatuses.includes(existingVal)) {
-          merged[field] = existingVal;
-        } else {
-          merged[field] = newVal || "Pending";
-        }
+    const processedData = freshData.map(newCand => {
+      let cand = { ...newCand };
+
+      // Strictly normalize statuses direct from Excel
+      STATUS_FIELDS.forEach(field => {
+        cand[field] = normalizeStatus(cand[field]);
       });
-
-      // Intelligent Meta Merging:
-      // Carry over local metadata (scores, comments, etc) if Excel is currently empty for those fields
-      if (existingCand) {
-        const metaFields = [
-          'Aptitude SET', 'Aptitude Marks', 'L1 Interviewer Name', 
-          'L1 Comments', 'L1 Score', 'L2 Interviewer Name', 'L2Comments', 
-          'L2 Score', 'Final Role', 'HR Interviewer Name', 'GD Score', 'Comments'
-        ];
-        metaFields.forEach(field => {
-          const newVal = (newCand[field] || "").trim();
-          const existingVal = (existingCand[field] || "").trim();
-          if (newVal === "" && existingVal !== "") {
-            merged[field] = existingVal;
-          }
-        });
-      }
       
-      return merged;
+      return cand;
     });
 
-    localStorage.setItem('walkin_candidates', JSON.stringify(mergedData));
+    // We still save to localStorage so components can "read" it, 
+    // but the MERGING logic that caused the ghosting is now GONE.
+    localStorage.setItem('walkin_candidates', JSON.stringify(processedData));
     localStorage.setItem('walkin_sheet_url', url);
-    return mergedData;
+    return processedData;
   } catch (error) {
     console.error('Sync failed:', error);
     throw error;

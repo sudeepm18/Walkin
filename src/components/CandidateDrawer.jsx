@@ -6,9 +6,11 @@ import {
   FiExternalLink, FiEdit3
 } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
+import { useCandidates } from '../context/CandidateContext';
 
 const CandidateDrawer = ({ candidate, isOpen, onClose }) => {
   const navigate = useNavigate();
+  const { sheetUrl } = useCandidates();
 
   if (!candidate) return null;
 
@@ -63,7 +65,7 @@ const CandidateDrawer = ({ candidate, isOpen, onClose }) => {
               <FiEdit3 size={14} /> Update Info
             </button>
             <button 
-              onClick={() => window.open(localStorage.getItem('walkin_sheet_url'), '_blank')}
+              onClick={() => window.open(sheetUrl, '_blank')}
               className="flex items-center justify-center gap-2 h-12 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white text-[10px] font-black uppercase tracking-widest transition-all border border-white/5"
             >
               <FiExternalLink size={14} /> View in Sheet
@@ -122,10 +124,11 @@ const CandidateDrawer = ({ candidate, isOpen, onClose }) => {
             
             <div className="space-y-2">
               {stages.map((stage, idx) => {
-                const status = candidate[stage.field];
-                const isSelected = status === 'Selected' || status === 'Agree' || status === 'selected';
-                const isRejected = status === 'Rejected';
-                const isPending = !status || status === 'Pending' || status === '';
+                const statusRaw = (candidate[stage.field] || "").toString().toLowerCase();
+                const isSelected = statusRaw === 'selected';
+                const isRejected = statusRaw === 'rejected';
+                const isPending = !isSelected && !isRejected;
+                const displayStatus = isSelected ? "Selected" : (isRejected ? "Rejected" : "Pending");
 
                 return (
                   <div 
@@ -142,7 +145,7 @@ const CandidateDrawer = ({ candidate, isOpen, onClose }) => {
                     <div className="flex-1">
                       <p className="text-[9px] font-black uppercase text-zinc-600 tracking-widest">{stage.label}</p>
                       <h4 className={`text-xs font-bold ${isSelected ? 'text-emerald-400' : isRejected ? 'text-rose-400' : 'text-zinc-400'}`}>
-                        {status || 'Pending'}
+                        {displayStatus}
                       </h4>
                     </div>
                     {isSelected && <FiCheckCircle className="text-emerald-500" />}

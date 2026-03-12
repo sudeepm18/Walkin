@@ -1,13 +1,13 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import logo from '../assets/logo.png'
 import { 
   FiSearch, FiUsers, FiCheckCircle, 
   FiXCircle, FiClock, FiMessageCircle, FiBookOpen, 
   FiUserCheck, FiTarget, FiChevronRight, FiArrowLeft, FiEdit3, FiLayout,
-  FiActivity, FiAward, FiRefreshCw, FiDownload
+  FiActivity, FiAward, FiRefreshCw, FiDownload, FiCheck, FiX
 } from 'react-icons/fi';
-import { syncCandidates } from '../services/syncService';
+import { useCandidates } from '../context/CandidateContext';
 import CandidateDrawer from './CandidateDrawer';
 import { exportCandidatesToExcel } from '../lib/excelExport';
 
@@ -71,7 +71,7 @@ const CandidateCard = ({ ID, name, position, isExp, status, currentStage, lastCo
                   ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
                   : 'bg-zinc-500/10 text-zinc-400 border-zinc-500/20'
               }`}>
-                {isExp ? 'EXP' : 'FRES'}
+                {isExp ? 'EXP' : 'FRESHER'}
               </span>
             </div>
           </div>
@@ -124,13 +124,16 @@ const CandidateCard = ({ ID, name, position, isExp, status, currentStage, lastCo
             <React.Fragment key={i}>
               <div className="relative z-10 flex flex-col items-center gap-1.5 shrink-0 w-8">
                 <div className={`w-6 h-6 rounded-full border flex items-center justify-center transition-all duration-500 ${
-                  stage.active 
+                  stage.isRejected ? 'bg-rose-500/10 border-rose-500/50 text-rose-500' :
+                  stage.isCompleted 
                     ? `${c.bg} ${c.border} ${c.text}` 
                     : 'bg-[#0d1520] border-white/10 text-zinc-800'
-                }`} style={stage.active ? { boxShadow: `0 0 15px ${c.shadow}` } : {}}>
-                  <stage.icon size={11} className={stage.active ? 'drop-shadow-[0_0_4px_rgba(255,255,255,0.4)]' : ''} />
+                }`} style={stage.isCompleted ? { boxShadow: `0 0 15px ${c.shadow}` } : stage.isRejected ? { boxShadow: `0 0 15px rgba(244, 63, 94, 0.15)` } : {}}>
+                  {stage.isRejected ? <FiX size={10} strokeWidth={4} /> : 
+                   stage.isCompleted ? <FiCheck size={10} strokeWidth={4} /> : 
+                   <stage.icon size={11} className="opacity-30" />}
                 </div>
-                <span className={`text-[5.5px] font-black uppercase tracking-widest whitespace-nowrap ${stage.active ? 'text-zinc-400' : 'text-zinc-800'}`}>
+                <span className={`text-[5.5px] font-black uppercase tracking-widest whitespace-nowrap ${stage.isRejected ? 'text-rose-500/50' : stage.isCompleted ? 'text-zinc-400' : 'text-zinc-800'}`}>
                   {stage.label}
                 </span>
               </div>
@@ -138,8 +141,8 @@ const CandidateCard = ({ ID, name, position, isExp, status, currentStage, lastCo
               {i < stages.length - 1 && (
                 <div className="flex-1 -mt-1.5 min-w-[10px]">
                   <div className={`h-px w-full transition-all duration-700 ${
-                    stage.active ? c.line : 'bg-white/5'
-                  }`} style={stage.active ? { boxShadow: `0 0 8px ${c.glow}` } : {}} />
+                    stage.isCompleted ? c.line : stage.isRejected ? 'bg-rose-500/30' : 'bg-white/5'
+                  }`} style={stage.isCompleted ? { boxShadow: `0 0 8px ${c.glow}` } : {}} />
                 </div>
               )}
             </React.Fragment>
@@ -152,63 +155,24 @@ const CandidateCard = ({ ID, name, position, isExp, status, currentStage, lastCo
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { candidates: candidatesRaw, lastSync: lastSynced, isSyncing, refreshCandidates } = useCandidates();
+  
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedRole, setSelectedRole] = useState(null);
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [candidatesRaw, setCandidatesRaw] = useState([]);
   const [selectedCandidateForDrawer, setSelectedCandidateForDrawer] = useState(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  
-  const [lastSynced, setLastSynced] = useState(localStorage.getItem('walkin_last_sync') || "");
-  
-  const loadCandidates = () => {
-    const data = localStorage.getItem('walkin_candidates');
-    const time = localStorage.getItem('walkin_last_sync');
-    console.log(`[Dashboard] Loading candidates. Found: ${data ? JSON.parse(data).length : 0} items. Last Sync: ${time}`);
-    if (data) setCandidatesRaw(JSON.parse(data));
-    if (time) setLastSynced(time);
-  };
+  const [showAllCandidates, setShowAllCandidates] = useState(false);
+  const [expFilter, setExpFilter] = useState("all"); // "all", "exp", "fresher"
 
-  useEffect(() => {
-    loadCandidates();
-    const handleSyncStart = () => setIsSyncing(true);
-    const handleSyncComplete = () => {
-      console.log("[Dashboard] Sync Complete Event Received");
-      setIsSyncing(false);
-      loadCandidates();
-    };
-    window.addEventListener('storage', loadCandidates);
-    window.addEventListener('sync-start', handleSyncStart);
-    window.addEventListener('sync-complete', handleSyncComplete);
-    return () => {
-      window.removeEventListener('storage', loadCandidates);
-      window.removeEventListener('sync-start', handleSyncStart);
-      window.removeEventListener('sync-complete', handleSyncComplete);
-    };
-  }, []);
+  const handleManualSync = useCallback(async () => {
+    await refreshCandidates();
+  }, [refreshCandidates]);
 
-  const handleManualSync = async () => {
-    const url = localStorage.getItem('walkin_sheet_url');
-    if (!url) return;
-    setIsSyncing(true);
-    try {
-      console.log("[Dashboard] Starting Manual Sync...");
-      const updatedData = await syncCandidates(url);
-      const time = new Date().toLocaleTimeString();
-      localStorage.setItem('walkin_last_sync', time);
-      console.log(`[Dashboard] Manual Sync Success! Received ${updatedData.length} items.`);
-      loadCandidates();
-    } catch (error) {
-      console.error("Dashboard sync failed:", error);
-    } finally {
-      setIsSyncing(false);
-    }
-  };
-
-  // Proactive sync on mount
   useEffect(() => {
     handleManualSync();
-  }, []);
+  }, [handleManualSync]);
+
+
 
   const handleExport = () => {
     exportCandidatesToExcel(candidatesRaw);
@@ -216,7 +180,12 @@ const Dashboard = () => {
 
   const candidates = useMemo(() => {
     return candidatesRaw.map(cand => {
-      const getStatus = (val) => (!val || val.trim() === "" || val === "Pending") ? "Pending" : val;
+      const getStatus = (val) => {
+        const s = (val || "").trim().toLowerCase();
+        if (s === "selected") return "Selected";
+        if (s === "rejected") return "Rejected";
+        return "Pending";
+      };
       const orientStatus = getStatus(cand['Orientation(Agree & Disagree)']);
       const gdStatus = getStatus(cand['GD Status']);
       const aptStatus = getStatus(cand['Aptitude Status']);
@@ -236,7 +205,7 @@ const Dashboard = () => {
         ...cand,
         name: cand.Name || "Unknown",
         position: cand['Role Applied For?'] || "Not Specified",
-        isExp: cand['Have a relevent work experience before?'] === 'Yes',
+        isExp: ['yes', 'true', '1'].includes(String(cand['Have a relevent work experience before?'] || "").toLowerCase()),
         status: isOffer ? 'Selected' : (isRejected ? 'Rejected' : 'Pending'),
         currentStage: isOffer ? 'OFFERED' : (
           l2Status === 'Selected' ? 'HR' : 
@@ -247,19 +216,24 @@ const Dashboard = () => {
         ),
         lastCompletedStage,
         stages: [
-          { label: "Orient", icon: FiActivity, color: "violet", active: orientStatus === 'Selected' },
-          { label: "GD", icon: FiMessageCircle, color: "cyan", active: gdStatus === 'Selected' },
-          { label: "Aptit.", icon: FiBookOpen, color: "violet", active: aptStatus === 'Selected' },
-          { label: "L1", icon: FiUserCheck, color: "amber", active: l1Status === 'Selected' },
-          { label: "L2", icon: FiTarget, color: "emerald", active: l2Status === 'Selected' },
-          { label: "HR", icon: FiAward, color: "emerald", active: hrStatus === 'Selected' }
+          { label: "Orient", icon: FiActivity, color: "violet", isCompleted: orientStatus === 'Selected', isRejected: orientStatus === 'Rejected' },
+          { label: "GD", icon: FiMessageCircle, color: "cyan", isCompleted: gdStatus === 'Selected', isRejected: gdStatus === 'Rejected' },
+          { label: "Aptit.", icon: FiBookOpen, color: "violet", isCompleted: aptStatus === 'Selected', isRejected: aptStatus === 'Rejected' },
+          { label: "L1", icon: FiUserCheck, color: "amber", isCompleted: l1Status === 'Selected', isRejected: l1Status === 'Rejected' },
+          { label: "L2", icon: FiTarget, color: "emerald", isCompleted: l2Status === 'Selected', isRejected: l2Status === 'Rejected' },
+          { label: "HR", icon: FiAward, color: "emerald", isCompleted: hrStatus === 'Selected', isRejected: hrStatus === 'Rejected' }
         ]
       };
     });
   }, [candidatesRaw]);
 
+  const candidatesFilteredByExp = useMemo(() => {
+    if (expFilter === "all") return candidates;
+    return candidates.filter(c => expFilter === "exp" ? c.isExp : !c.isExp);
+  }, [candidates, expFilter]);
+
   const stats = useMemo(() => {
-    const sourceData = selectedRole ? candidates.filter(c => c.position === selectedRole) : candidates;
+    const sourceData = selectedRole ? candidatesFilteredByExp.filter(c => c.position === selectedRole) : candidatesFilteredByExp;
     const total = sourceData.length;
     const selected = sourceData.filter(c => c.status === 'Selected').length;
     const rejected = sourceData.filter(c => c.status === 'Rejected').length;
@@ -269,11 +243,11 @@ const Dashboard = () => {
     const l1Selected = sourceData.filter(c => c.currentStage === 'L2').length;
     const l2Selected = sourceData.filter(c => c.currentStage === 'HR').length;
     return { total, selected, rejected, pending, gdSelected, aptSelected, l1Selected, l2Selected };
-  }, [candidates, selectedRole]);
+  }, [candidatesFilteredByExp, selectedRole]);
 
   const positions = useMemo(() => {
     const posMap = {};
-    candidates.forEach(c => {
+    candidatesFilteredByExp.forEach(c => {
       const p = c.position;
       if (!posMap[p]) posMap[p] = { title: p, count: 0, sel: 0, rej: 0, pen: 0 };
       posMap[p].count++;
@@ -289,12 +263,13 @@ const Dashboard = () => {
         { icon: FiClock, color: "text-amber-500", val: p.pen }
       ]
     })).sort((a, b) => b.count - a.count);
-  }, [candidates]);
+  }, [candidatesFilteredByExp]);
 
-  const filteredCandidates = candidates.filter(c => {
+  const filteredCandidates = candidatesFilteredByExp.filter(c => {
     const matchesSearch = c.name.toLowerCase().includes(searchTerm.toLowerCase()) || c.position.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRole = selectedRole ? c.position === selectedRole : true;
-    return matchesSearch && matchesRole;
+    const matchesPipeline = showAllCandidates ? true : c.lastCompletedStage !== null;
+    return matchesSearch && matchesRole && matchesPipeline;
   });
 
   return (
@@ -329,9 +304,20 @@ const Dashboard = () => {
             >
               <FiDownload />
             </button>
-            <div className="relative flex-1 sm:flex-initial min-w-[200px]">
-              <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" />
-              <input type="text" placeholder="Search..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="bg-[#0d1117] border border-white/10 rounded-xl py-2.5 sm:py-3 pl-12 pr-6 text-sm outline-none w-full sm:w-64 focus:border-indigo-500/50" />
+            <div className="flex-1 sm:flex-initial flex items-center gap-3">
+              <select 
+                value={expFilter} 
+                onChange={(e) => setExpFilter(e.target.value)}
+                className="bg-[#0d1117] border border-white/10 rounded-xl h-10 sm:h-12 px-4 text-[10px] font-black uppercase tracking-widest text-indigo-400 outline-none focus:border-indigo-500/50 appearance-none min-w-[120px]"
+              >
+                <option value="all">All</option>
+                <option value="exp">Experienced </option>
+                <option value="fresher">Freshers </option>
+              </select>
+              <div className="relative flex-1">
+                <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" />
+                <input type="text" placeholder="Search..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="bg-[#0d1117] border border-white/10 rounded-xl py-2.5 sm:py-3 pl-12 pr-6 text-sm outline-none w-full sm:w-64 focus:border-indigo-500/50" />
+              </div>
             </div>
           </div>
         </div>
@@ -368,6 +354,16 @@ const Dashboard = () => {
                 {selectedRole ? `Stream: ${selectedRole}` : "All Candidates"}
               </h3>
               <div className="flex items-center gap-3">
+                <button 
+                  onClick={() => setShowAllCandidates(!showAllCandidates)} 
+                  className={`text-[9px] font-black uppercase transition-all px-2 py-1 rounded-md border ${
+                    showAllCandidates 
+                      ? 'bg-indigo-600/20 border-indigo-500/30 text-indigo-400' 
+                      : 'bg-white/5 border-white/10 text-zinc-500 hover:text-white'
+                  }`}
+                >
+                  {showAllCandidates ? "Showing All" : "Pipeline Only"}
+                </button>
                 {selectedRole && <button onClick={() => setSelectedRole(null)} className="text-[9px] font-black uppercase text-zinc-500 hover:text-white">Clear</button>}
                 <span className="text-[10px] font-black text-zinc-500">{filteredCandidates.length}</span>
               </div>

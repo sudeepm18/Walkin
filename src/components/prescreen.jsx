@@ -5,14 +5,16 @@ import {
   FiClock, FiXCircle, FiSave, FiSearch,
   FiActivity, FiMessageCircle, FiBookOpen, FiChevronRight, FiMenu, FiX
 } from 'react-icons/fi';
-import { updateCandidateLocally, updateCandidatesLocallyBulk, pushToGoogleSheet, syncCandidates } from '../services/syncService';
+import { useCandidates } from '../context/CandidateContext';
+import { updateCandidateLocally, updateCandidatesLocallyBulk, pushToGoogleSheet, getCascadedCandidate } from '../services/syncService';
 
 const PreScreen = () => {
   const navigate = useNavigate();
+  const { candidates, setCandidates, isSyncing: isRefreshing, refreshCandidates } = useCandidates();
+  
   const [activeTab, setActiveTab] = useState('Orientation');
-  const [startRange, setStartRange] = useState(0);
-  const [endRange, setEndRange] = useState(0);
-  const [candidates, setCandidates] = useState([]);
+  const [startRange, setStartRange] = useState('');
+  const [endRange, setEndRange] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -21,7 +23,6 @@ const PreScreen = () => {
   const [showSidebar, setShowSidebar] = useState(false);
   
   const [selectedIds, setSelectedIds] = useState(new Set());
-  const [lastBatch, setLastBatch] = useState({ start: 0, end: 0 });
 
   const toggleSelection = (id) => {
     setSelectedIds(prev => {
@@ -46,73 +47,75 @@ const PreScreen = () => {
     { id: 'Aptitude', icon: FiBookOpen, label: 'Aptitude' }
   ];
 
-  const loadCandidates = () => {
-    const data = localStorage.getItem('walkin_candidates');
-    console.log(`[PreScreen] Loading candidates. Found: ${data ? JSON.parse(data).length : 0} items.`);
-    if (data) setCandidates(JSON.parse(data));
-  };
-
   useEffect(() => {
-    loadCandidates();
-    const handleSyncStart = () => {
-      console.log("[PreScreen] Sync Start Event Received");
-      setIsSaving(true);
-    };
-    const handleSyncComplete = () => {
-      console.log("[PreScreen] Sync Complete Event Received");
-      setIsSaving(false);
-      loadCandidates();
-    };
-    window.addEventListener('storage', loadCandidates);
-    window.addEventListener('sync-start', handleSyncStart);
-    window.addEventListener('sync-complete', handleSyncComplete);
-    return () => {
-      window.removeEventListener('storage', loadCandidates);
-      window.removeEventListener('sync-start', handleSyncStart);
-      window.removeEventListener('sync-complete', handleSyncComplete);
-    };
-  }, []);
+    refreshCandidates();
+  }, [refreshCandidates]);
 
-  // Proactive sync on mount
-  useEffect(() => {
-    const autoSync = async () => {
-      const url = localStorage.getItem('walkin_sheet_url');
-      if (!url) return;
-      try {
-        setIsSaving(true);
-        await syncCandidates(url);
-        loadCandidates();
-      } catch (err) {
-        console.error("PreScreen auto-sync failed:", err);
-      } finally {
-        setIsSaving(false);
-      }
-    };
-    autoSync();
-  }, []);
+
 
   const filteredCandidates = useMemo(() => {
-    if (!searchTerm) return candidates;
-    return candidates.filter(c => 
+    let base = candidates;
+
+    // Visibility Logic:
+    // - GD: Only show those Selected in Orientation
+    // - Aptitude: Only show those Selected in GD
+  if (activeTab === 'Group Discussion') {
+  base = base.filter(c => (c['Orientation(Agree & Disagree)'] || 'Pending') === 'Selected');
+} 
+else if (activeTab === 'Aptitude') {
+  base = base.filter(c => (c['GD Status'] || 'Pending') === 'Selected');
+}
+
+    if (!searchTerm) return base;
+    return base.filter(c => 
       c.Name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       c.ID?.toString().includes(searchTerm)
     );
-  }, [candidates, searchTerm]);
+  }, [candidates, searchTerm, activeTab]);
+
+  const { minId, maxId } = useMemo(() => {
+    if (filteredCandidates.length === 0) return { minId: 0, maxId: 0 };
+    const ids = filteredCandidates.map(c => parseInt(c.ID)).filter(id => !isNaN(id));
+    if (ids.length === 0) return { minId: 0, maxId: 0 };
+    return { minId: Math.min(...ids), maxId: Math.max(...ids) };
+  }, [filteredCandidates]);
 
   useEffect(() => {
-    if (startRange === lastBatch.start && endRange === lastBatch.end) return;
-    const newBatch = filteredCandidates.slice(startRange, endRange).map(c => c.ID);
+    if (startRange === '' && endRange === '') return;
+    const s = startRange === '' ? 0 : parseInt(startRange);
+    const e = endRange === '' ? 0 : parseInt(endRange);
+    
+    const newBatch = filteredCandidates
+      .filter(c => {
+        const id = parseInt(c.ID);
+        return id >= s && id <= e;
+      })
+      .map(c => c.ID);
+      
     setSelectedIds(new Set(newBatch));
-    setLastBatch({ start: startRange, end: endRange });
   }, [startRange, endRange, filteredCandidates]);
 
   const displayCandidates = useMemo(() => {
-    return filteredCandidates.map((cand) => {
+    const list = filteredCandidates.map((cand) => {
       return { ...cand, isSelected: selectedIds.has(cand.ID) };
+    });
+    return [...list].sort((a, b) => {
+      if (a.isSelected === b.isSelected) return 0;
+      return a.isSelected ? -1 : 1;
     });
   }, [filteredCandidates, selectedIds]);
 
-  const maxTotal = filteredCandidates.length;
+  const maxTotal = maxId;
+
+  // Cleanup effect: Reset ranges if they fall outside current boundaries (e.g. after tab switch)
+  useEffect(() => {
+    if (startRange !== '' && (parseInt(startRange) < minId || parseInt(startRange) > maxId)) {
+      setStartRange('');
+    }
+    if (endRange !== '' && (parseInt(endRange) > maxId || parseInt(endRange) < minId)) {
+      setEndRange('');
+    }
+  }, [minId, maxId]);
 
   const handleBulkUpdate = (status) => {
     const statusField = activeTab === 'Orientation' ? 'Orientation(Agree & Disagree)' : 
@@ -128,18 +131,27 @@ const PreScreen = () => {
       return;
     }
 
-    // Update local state IMMEDIATELY for 60fps UI feedback
-    setCandidates(prev => prev.map(c => 
-      selectedIds.has(c.ID) ? { ...c, [field]: value } : c
-    ));
+    // 1. Update Global State
+    const updatedData = candidates.map(c => 
+      selectedIds.has(c.ID) ? getCascadedCandidate(c, field, value) : c
+    );
+    setCandidates(updatedData);
 
-    // Handle heavy localStorage/Logic in background
-    setTimeout(() => {
-      updateCandidatesLocallyBulk(idsToUpdate, { [field]: value });
+    // 2. Persist in memory and SYNC to Excel
+    setTimeout(async () => {
+      const scriptUrl = localStorage.getItem('walkin_script_url');
+      if (scriptUrl) {
+        try {
+          await pushToGoogleSheet(scriptUrl, updatedData);
+          console.log("[PreScreen] Immediate Excel Sync triggered for bulk update.");
+        } catch (err) {
+          console.error("Immediate sync failed:", err);
+        }
+      }
     }, 0);
 
     setSessionUpdates(prev => prev + idsToUpdate.length);
-    showMsg(`Updated ${idsToUpdate.length} items`, 'success');
+    showMsg(`Updated ${idsToUpdate.length} candidates`, 'success');
     if (window.innerWidth < 1024) setShowSidebar(false);
   };
 
@@ -151,8 +163,7 @@ const PreScreen = () => {
     }
     setIsSaving(true);
     try {
-      const latestData = JSON.parse(localStorage.getItem('walkin_candidates') || '[]');
-      await pushToGoogleSheet(scriptUrl, latestData);
+      await pushToGoogleSheet(scriptUrl, candidates);
       setShowSuccessModal(true);
       setSessionUpdates(0); 
       setTimeout(() => setShowSuccessModal(false), 3000);
@@ -201,7 +212,7 @@ const PreScreen = () => {
       </header>
 
       <main className="flex-1 flex overflow-hidden relative">
-        <aside className={`fixed inset-y-0 right-0 w-[320px] sm:w-[400px] bg-[#090b10] border-l lg:border-l-0 lg:border-r border-white/5 p-6 sm:p-8 z-40 transition-transform duration-500 lg:static lg:translate-x-0 ${showSidebar ? 'translate-x-0' : 'translate-x-full'}`}>
+        <aside className={`fixed inset-y-0 right-0 w-[320px] sm:w-[400px] bg-[#090b10] border-l lg:border-l-0 lg:border-r border-white/5 p-6 sm:p-8 z-40 transition-transform duration-500 lg:static lg:translate-x-0 overflow-hidden ${showSidebar ? 'translate-x-0' : 'translate-x-full'}`}>
           <div className="space-y-8">
             <div className="xl:hidden flex flex-col gap-2 mb-6">
               <label className="text-[9px] font-black uppercase text-zinc-500 tracking-widest">Workflow Step</label>
@@ -229,14 +240,33 @@ const PreScreen = () => {
               </div>
               <div className="bg-[#0d1117] border border-white/5 rounded-3xl p-6">
                 <div className="flex justify-between items-center mb-6">
-                  <div className="flex flex-col"><span className="text-[7px] font-black text-zinc-600 uppercase">From</span><span className="text-lg font-black">{startRange === endRange ? 0 : startRange + 1}</span></div>
-                  <div className="flex flex-col items-end"><span className="text-[7px] font-black text-zinc-600 uppercase">To</span><span className="text-lg font-black">{endRange}</span></div>
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-[7px] font-black text-zinc-600 uppercase mb-1">From ID</span>
+                    <input 
+                      type="number" 
+                      value={startRange}
+                      onChange={(e) => setStartRange(e.target.value)}
+                      className="bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-sm font-black w-16 text-indigo-400 outline-none focus:border-indigo-500/50 transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    />
+                  </div>
+                  <div className="flex flex-col items-end min-w-0">
+                    <span className="text-[7px] font-black text-zinc-600 uppercase mb-1">To ID</span>
+                    <input 
+                      type="number" 
+                      value={endRange}
+                      onChange={(e) => setEndRange(e.target.value)}
+                      className="bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-sm font-black w-16 text-indigo-400 text-right outline-none focus:border-indigo-500/50 transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    />
+                  </div>
                 </div>
                 <div className="relative h-6 flex items-center">
                   <div className="absolute inset-x-0 h-1 bg-white/5 rounded-full" />
-                  <div className="absolute h-1 bg-indigo-500 rounded-full" style={{ left: `${(startRange / maxTotal) * 100}%`, right: `${100 - (endRange / maxTotal) * 100}%` }} />
-                  <input type="range" min="0" max={maxTotal} value={startRange} onChange={(e) => setStartRange(Math.min(parseInt(e.target.value), endRange))} className="absolute w-full appearance-none bg-transparent pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full" />
-                  <input type="range" min="0" max={maxTotal} value={endRange} onChange={(e) => setEndRange(Math.max(parseInt(e.target.value), startRange))} className="absolute w-full appearance-none bg-transparent pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full" />
+                  <div className="absolute h-1 bg-indigo-500 rounded-full" style={{ 
+                    left: `${Math.max(0, Math.min(100, (((startRange === '' ? minId : parseInt(startRange)) - minId) / (maxId - minId || 1)) * 100))}%`, 
+                    right: `${Math.max(0, Math.min(100, 100 - (((endRange === '' ? maxId : parseInt(endRange)) - minId) / (maxId - minId || 1)) * 100))}%` 
+                  }} />
+                  <input type="range" min={minId} max={maxId} value={startRange === '' ? minId : startRange} onChange={(e) => setStartRange(Math.min(parseInt(e.target.value), endRange === '' ? maxId : parseInt(endRange)))} className="absolute w-full appearance-none bg-transparent pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full" />
+                  <input type="range" min={minId} max={maxId} value={endRange === '' ? maxId : endRange} onChange={(e) => setEndRange(Math.max(parseInt(e.target.value), startRange === '' ? minId : parseInt(startRange)))} className="absolute w-full appearance-none bg-transparent pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full" />
                 </div>
               </div>
             </div>
@@ -246,7 +276,6 @@ const PreScreen = () => {
                 {message.text}
               </div>
             )}
-            {message.text && <div className={`p-4 rounded-xl text-[9px] font-black uppercase text-center border ${message.type === 'error' ? 'bg-rose-500/10 border-rose-500/20 text-rose-500' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500'}`}>{message.text}</div>}
           </div>
         </aside>
 
@@ -306,36 +335,82 @@ const PreScreen = () => {
                     <label className="text-[7px] font-black uppercase text-zinc-600 tracking-tighter">Round Status</label>
                     <select 
                       value={cand[activeTab === 'Orientation' ? 'Orientation(Agree & Disagree)' : activeTab === 'Group Discussion' ? 'GD Status' : 'Aptitude Status'] || "Pending"}
-                      onChange={(e) => {
-                        updateCandidateLocally(cand.ID, { [activeTab === 'Orientation' ? 'Orientation(Agree & Disagree)' : activeTab === 'Group Discussion' ? 'GD Status' : 'Aptitude Status']: e.target.value });
-                        loadCandidates();
+                      onChange={async (e) => {
+                        const field = activeTab === 'Orientation' ? 'Orientation(Agree & Disagree)' : activeTab === 'Group Discussion' ? 'GD Status' : 'Aptitude Status';
+                        const newVal = e.target.value;
+                        
+                        // 1. Update Global State
+                        const updatedCand = getCascadedCandidate(cand, field, newVal);
+                        setCandidates(candidates.map(c => c.ID === cand.ID ? updatedCand : c));
+                        
+                        // 2. Push to Excel
+                        const scriptUrl = localStorage.getItem('walkin_script_url');
+                        if (scriptUrl) {
+                          try {
+                            await pushToGoogleSheet(scriptUrl, updatedCand);
+                          } catch (err) { console.error("Sync failed:", err); }
+                        }
                       }}
-                      className="bg-[#090b10] border border-white/10 rounded-lg h-8 px-2 text-[9px] font-black text-indigo-400 focus:border-indigo-500 outline-none w-24"
+                      className={`bg-[#090b10] border border-white/10 rounded-lg h-8 px-2 text-[9px] font-black outline-none w-24 transition-colors ${
+                        (cand[activeTab === 'Orientation' ? 'Orientation(Agree & Disagree)' : activeTab === 'Group Discussion' ? 'GD Status' : 'Aptitude Status'] || "Pending") === 'Selected' ? 'text-emerald-400 border-emerald-500/30' : 
+                        (cand[activeTab === 'Orientation' ? 'Orientation(Agree & Disagree)' : activeTab === 'Group Discussion' ? 'GD Status' : 'Aptitude Status'] || "Pending") === 'Rejected' ? 'text-rose-400 border-rose-500/30' : 
+                        'text-amber-400 border-amber-500/30'
+                      }`}
                     >
                       <option value="Pending">Pending</option>
                       <option value="Selected">Selected</option>
                       <option value="Rejected">Rejected</option>
                     </select>
-                  </div>
-
-                  {activeTab === 'Aptitude' && (
-                    <div className="flex items-center gap-2 border-l border-white/5 pl-3">
-                      <div className="flex flex-col gap-1">
-                        <label className="text-[7px] font-black text-zinc-600">Score</label>
-                        <select value={cand['Aptitude Marks'] || ""} onChange={e => { updateCandidateLocally(cand.ID, { 'Aptitude Marks': e.target.value }); loadCandidates(); }} className="bg-[#090b10] border border-white/10 rounded-lg h-8 px-1 text-[9px] font-black text-indigo-400 outline-none w-12">
-                          <option value="">-</option>
-                          {[...Array(10)].map((_, i) => <option key={i+1} value={i+1}>{i+1}</option>)}
-                        </select>
-                      </div>
-                      <div className="flex flex-col gap-1">
-                        <label className="text-[7px] font-black text-zinc-600">SET</label>
-                        <select value={cand['Aptitude SET'] || ""} onChange={e => { updateCandidateLocally(cand.ID, { 'Aptitude SET': e.target.value }); loadCandidates(); }} className="bg-[#090b10] border border-white/10 rounded-lg h-8 px-1 text-[9px] font-black text-fuchsia-400 outline-none w-16">
-                          <option value="">-</option>
-                          {[1, 2, 3, 4, 5].map(set => <option key={set} value={`SET ${set}`}>SET {set}</option>)}
-                        </select>
-                      </div>
                     </div>
-                  )}
+
+                    {activeTab === 'Aptitude' && (
+                      <div className="flex items-center gap-2 border-l border-white/5 pl-3">
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[7px] font-black text-zinc-600">Score</label>
+                          <select 
+                            value={cand['Aptitude Marks'] || ""} 
+                            onChange={async (e) => { 
+                              const val = e.target.value;
+                              const updated = candidates.map(c => c.ID === cand.ID ? { ...c, 'Aptitude Marks': val } : c);
+                              setCandidates(updated);
+
+                              const scriptUrl = localStorage.getItem('walkin_script_url');
+                              if (scriptUrl) {
+                                try {
+                                  await pushToGoogleSheet(scriptUrl, updated);
+                                } catch (err) { console.error("Sync failed:", err); }
+                              }
+                            }} 
+                            className="bg-[#090b10] border border-white/10 rounded-lg h-8 px-1 text-[9px] font-black text-indigo-400 outline-none w-12"
+                          >
+                            <option value="">-</option>
+                            {[...Array(10)].map((_, i) => <option key={i+1} value={i+1}>{i+1}</option>)}
+                          </select>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[7px] font-black text-zinc-600">SET</label>
+                          <select 
+                            value={cand['Aptitude SET'] || ""} 
+                            onChange={async (e) => { 
+                              const val = e.target.value;
+                              const updated = candidates.map(c => c.ID === cand.ID ? { ...c, 'Aptitude SET': val } : c);
+                              setCandidates(updated);
+
+                              const scriptUrl = localStorage.getItem('walkin_script_url');
+                              if (scriptUrl) {
+                                try {
+                                  await pushToGoogleSheet(scriptUrl, updated);
+                                } catch (err) { console.error("Sync failed:", err); }
+                              }
+                            }} 
+                            className="bg-[#090b10] border border-white/10 rounded-lg h-8 px-1 text-[9px] font-black text-fuchsia-400 outline-none w-16"
+                          >
+                            <option value="">-</option>
+                            {[1, 2, 3, 4, 5].map(set => <option key={set} value={`SET ${set}`}>SET {set}</option>)}
+                          </select>
+                        </div>
+                      </div>
+                    )}
                   {cand.isSelected && <FiCheckCircle className="text-indigo-400 shrink-0 ml-2 animate-pulse" />}
                 </div>
               </div>

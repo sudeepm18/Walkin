@@ -1,5 +1,6 @@
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useCandidates } from '../context/CandidateContext';
 import { 
   FiSearch, FiCalendar, FiMapPin, FiUsers, FiFilter, 
   FiChevronRight, FiArrowLeft, FiEdit3, FiGrid, FiList,
@@ -78,11 +79,7 @@ const ManageCandidates = () => {
   const [selectedDate, setSelectedDate] = useState("All Dates");
   const [viewMode, setViewMode] = useState("grid");
 
-  // Fetch real data from LocalStorage
-  const candidatesRaw = useMemo(() => {
-    const data = localStorage.getItem('walkin_candidates');
-    return data ? JSON.parse(data) : [];
-  }, []);
+  const { candidates: candidatesRaw } = useCandidates();
 
   const candidates = useMemo(() => {
     return candidatesRaw.map(cand => {
@@ -93,7 +90,7 @@ const ManageCandidates = () => {
         ...cand,
         name: cand.Name || "Unknown",
         position: cand['Role Applied For?'] || "Not Specified",
-        isExp: cand['Have a relevent work experience before?'] === 'Yes',
+        isExp: ['yes', 'true', '1'].includes(String(cand['Have a relevent work experience before?'] || "").toLowerCase()),
         status: cand['HR Round Status'] || "PENDING",
         branch: cand['Home Town'] || cand['Branch'] || "Main Branch", // Fallback to Home Town if branch is missing
         date: datePart,

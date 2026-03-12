@@ -1,11 +1,12 @@
-import { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   FiArrowLeft, FiSave, FiUser, FiMail, FiPhone, FiRefreshCw,
   FiMessageCircle, FiBookOpen, FiUserCheck, FiTarget, FiActivity, FiAward,
   FiLock, FiCheck, FiClock, FiX, FiCheckCircle, FiAlertCircle
 } from 'react-icons/fi';
-import { updateCandidateLocally, pushToGoogleSheet } from '../services/syncService';
+import { pushToGoogleSheet, getCascadedCandidate } from '../services/syncService';
+import { useCandidates } from '../context/CandidateContext';
 
 const StageStep = ({ icon: Icon, label, isActive, isCompleted, isRejected, themeColor }) => {
   const themes = {
@@ -35,6 +36,8 @@ const StageStep = ({ icon: Icon, label, isActive, isCompleted, isRejected, theme
 const UpdateCandidate = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { candidates: contextCandidates, setCandidates: setContextCandidates } = useCandidates();
+  
   const queryParams = new URLSearchParams(location.search);
   const candidateId = queryParams.get('id');
 
@@ -65,13 +68,11 @@ const UpdateCandidate = () => {
     const intData = localStorage.getItem('walkin_interviewers');
     if (intData) setAvailableInterviewers(JSON.parse(intData));
 
-    const data = localStorage.getItem('walkin_candidates');
-    if (data) {
-      const candidates = JSON.parse(data);
-      const roles = [...new Set(candidates.map(c => c['Role Applied For?']).filter(Boolean))].sort();
+    if (contextCandidates.length > 0) {
+      const roles = [...new Set(contextCandidates.map(c => c['Role Applied For?']).filter(Boolean))].sort();
       setAvailableRoles(roles);
 
-      const found = candidates.find(c => String(c.ID) === candidateId);
+      const found = contextCandidates.find(c => String(c.ID) === candidateId);
       if (found) {
         const withDefaults = { ...found };
         stages.forEach(s => { if (!withDefaults[s.field]) withDefaults[s.field] = 'Pending'; });
@@ -79,17 +80,10 @@ const UpdateCandidate = () => {
         setCandidate(withDefaults);
       }
     }
-  }, [candidateId, stages]);
+  }, [candidateId, stages, contextCandidates]);
 
   const handleUpdateField = (field, value) => {
-    setCandidate(prev => {
-      let updated = { ...prev, [field]: value };
-      if (value === 'Rejected') {
-        const idx = stages.findIndex(s => s.field === field);
-        if (idx !== -1) { for (let i = idx + 1; i < stages.length; i++) updated[stages[i].field] = 'Rejected'; }
-      }
-      return updated;
-    });
+    setCandidate(prev => getCascadedCandidate(prev, field, value));
   };
 
   const handleSave = async () => {
@@ -97,12 +91,20 @@ const UpdateCandidate = () => {
     setIsSyncing(true);
     setSaveStatus("Syncing...");
     try {
-      updateCandidateLocally(candidate.ID, candidate);
+      // 1. Update Global Context
+      const updatedCandidates = contextCandidates.map(c => 
+        String(c.ID) === String(candidate.ID) ? candidate : c
+      );
+      setContextCandidates(updatedCandidates);
+
+      // 2. Sync to Excel
       const scriptUrl = localStorage.getItem('walkin_script_url');
       if (scriptUrl) await pushToGoogleSheet(scriptUrl, candidate);
+      
       setSaveStatus("Synced!");
       setTimeout(() => setSaveStatus(""), 2000);
     } catch (err) {
+      console.error("Save failed:", err);
       setSaveStatus("Failed");
     } finally {
       setIsSyncing(false);

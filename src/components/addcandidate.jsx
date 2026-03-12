@@ -4,7 +4,7 @@ import {
   FiArrowLeft, FiPlus, FiDatabase, FiLink, FiCheckCircle, 
   FiRefreshCw, FiTrash2, FiSettings, FiExternalLink, FiFileText, FiAlertCircle
 } from 'react-icons/fi';
-import { syncCandidates } from '../services/syncService';
+import { useCandidates } from '../context/CandidateContext';
 
 const SourceCard = ({ url, isSyncing, onRemove, onSync, lastSynced, syncError }) => (
   <div className="bg-[#0d1117] border border-white/5 rounded-[24px] p-6 flex flex-col gap-5 group hover:border-white/10 transition-all">
@@ -45,6 +45,7 @@ const SourceCard = ({ url, isSyncing, onRemove, onSync, lastSynced, syncError })
 
 const AddCandidate = () => {
   const navigate = useNavigate();
+  const { refreshCandidates, lastSync: contextLastSync } = useCandidates();
   const [sheetUrl, setSheetUrl] = useState(localStorage.getItem('walkin_sheet_url') || "");
   const [scriptUrl, setScriptUrl] = useState(localStorage.getItem('walkin_script_url') || "");
   const [sources, setSources] = useState(localStorage.getItem('walkin_sheet_url') ? [{ id: Date.now(), url: localStorage.getItem('walkin_sheet_url') }] : []);
@@ -57,13 +58,12 @@ const AddCandidate = () => {
       setSyncError("");
       setIsSyncing(true);
       try {
-        await syncCandidates(sheetUrl);
-        setSources([{ id: Date.now(), url: sheetUrl }]);
-        const time = new Date().toLocaleTimeString();
-        setLastSynced(time);
         localStorage.setItem('walkin_sheet_url', sheetUrl);
-        localStorage.setItem('walkin_last_sync', time);
         if (scriptUrl) localStorage.setItem('walkin_script_url', scriptUrl);
+        
+        await refreshCandidates();
+        setSources([{ id: Date.now(), url: sheetUrl }]);
+        setLastSynced(new Date().toLocaleTimeString());
       } catch (error) {
         setSyncError("Fetch Failed. Ensure sheet is Public.");
       } finally {
@@ -78,10 +78,8 @@ const AddCandidate = () => {
     setIsSyncing(true);
     setSyncError("");
     try {
-      await syncCandidates(url);
-      const time = new Date().toLocaleTimeString();
-      setLastSynced(time);
-      localStorage.setItem('walkin_last_sync', time);
+      await refreshCandidates();
+      setLastSynced(new Date().toLocaleTimeString());
     } catch (error) {
       setSyncError("Sync failed.");
     } finally {

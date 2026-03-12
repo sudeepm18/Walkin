@@ -1,8 +1,19 @@
 {
-  "name": "Walk-in-management",
-  "version": "0.0.1",
-  "size": {
-    "width": 3,
-    "height": 3
-  }
+   "name": "Walk-in-management",
+   "version": "0.0.1",
+   "size": {
+      "width": 3,
+      "height": 3
+   },
+   "fileName": "manifest.json",
+   "datasetsMapping": [],
+   "id": "c1da6155-aa01-48cf-ab08-516839043898",
+   "collectionsMapping": [
+      {
+         "id": "5c4fb7b0-848f-466d-a789-34a2b6598993",
+         "name": "config",
+         "syncEnabled": false
+      }
+   ],
+   "proxyId":"0de710a2-e1d5-45f9-bb3c-4c85a4f14379"
 }
