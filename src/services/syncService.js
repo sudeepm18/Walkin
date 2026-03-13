@@ -24,13 +24,22 @@ export const normalizeStatus = (val) => {
  */
 export const getCascadedCandidate = (candidate, updatedField, newValue) => {
   const updated = { ...candidate, [updatedField]: newValue };
-  
-  if (newValue === 'Rejected') {
-    const fieldIndex = STATUS_FIELDS.indexOf(updatedField);
-    if (fieldIndex !== -1) {
+  const fieldIndex = STATUS_FIELDS.indexOf(updatedField);
+
+  if (fieldIndex !== -1) {
+    if (newValue === 'Rejected') {
       // Mark all rounds AFTER this one as Rejected
       for (let i = fieldIndex + 1; i < STATUS_FIELDS.length; i++) {
         updated[STATUS_FIELDS[i]] = 'Rejected';
+      }
+    } else {
+      // If moving AWAY from Rejected (to Selected or Pending), 
+      // check if subsequent rounds were Rejected. If so, reset them to Pending.
+      for (let i = fieldIndex + 1; i < STATUS_FIELDS.length; i++) {
+        const nextField = STATUS_FIELDS[i];
+        if (updated[nextField] === 'Rejected') {
+          updated[nextField] = 'Pending';
+        }
       }
     }
   }
@@ -170,28 +179,12 @@ export const pushToGoogleSheet = async (scriptUrl, data) => {
   
   console.log("[SyncEngine] === PUSH START ===");
   console.log("[SyncEngine] URL:", scriptUrl);
-  console.log("[SyncEngine] Candidates:", payload.length);
-  console.log("[SyncEngine] Payload size:", jsonStr.length, "bytes");
-  console.log("[SyncEngine] First ID:", payload[0]?.ID);
-  console.log("[SyncEngine] GD Status:", payload[0]?.['GD Status']);
-  console.log("[SyncEngine] Fields:", Object.keys(payload[0] || {}).slice(0, 15));
-  console.log("[SyncEngine] Applied For:", payload[0]?.['Role Applied For?']);
-  console.log("[SyncEngine] Final Role:", payload[0]?.['Final Role']);
+  console.log("[SyncEngine] Items:", payload.length);
+  console.log("[SyncEngine] First Item Preview:", JSON.stringify(payload[0]).substring(0, 400));
   
-  // Strategy 1: navigator.sendBeacon (most reliable for Google Apps Script)
-  if (navigator.sendBeacon) {
-    const blob = new Blob([jsonStr], { type: 'text/plain;charset=utf-8' });
-    const sent = navigator.sendBeacon(scriptUrl, blob);
-    console.log("[SyncEngine] sendBeacon:", sent ? "QUEUED OK" : "REJECTED");
-    if (sent) {
-      console.log("[SyncEngine] === PUSH COMPLETE (sendBeacon) ===");
-      return { status: "success", msg: "Data sent via sendBeacon" };
-    }
-  }
-  
-  // Strategy 2: fetch with no-cors (fallback)
+  // Strategy 1: fetch with no-cors (Primary for error visibility)
   try {
-    await fetch(scriptUrl, {
+    const response = await fetch(scriptUrl, {
       method: "POST",
       mode: "no-cors",
       headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -200,7 +193,15 @@ export const pushToGoogleSheet = async (scriptUrl, data) => {
     console.log("[SyncEngine] === PUSH COMPLETE (fetch) ===");
     return { status: "success", msg: "Data pushed via fetch" };
   } catch (err) {
-    console.error("[SyncEngine] === PUSH FAILED ===", err);
+    console.warn("[SyncEngine] fetch failed, attempting sendBeacon fallback...", err);
+    
+    // Strategy 2: navigator.sendBeacon (Fallback)
+    if (navigator.sendBeacon) {
+      const blob = new Blob([jsonStr], { type: 'text/plain;charset=utf-8' });
+      const sent = navigator.sendBeacon(scriptUrl, blob);
+      console.log("[SyncEngine] sendBeacon fallback:", sent ? "QUEUED" : "FAILED");
+      return { status: "success", msg: "Data sent via sendBeacon fallback" };
+    }
     throw err;
   }
 };

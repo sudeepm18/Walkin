@@ -9,6 +9,7 @@ const GetCurrentUser = () => {
     .then((user) => ({
       ...user,
       displayName: user.userName,
+      email: user.userEmail,
       avatarKey: `/domo/avatars/v2/USER/${user.userId}`,
     }))
     .catch((error) => {
@@ -19,11 +20,18 @@ const GetCurrentUser = () => {
 
 const GetAllUser = () => {
   return domo
-    .get(`/domo/users/v1?includeDetails=true&limit=500`)
-    .then((response) => response)
+    .get(`/domo/users/v1?limit=1000`)
+    .then((response) => {
+      // Sometimes Domo returns the array directly, sometimes { users: [] }
+      if (Array.isArray(response)) return response;
+      if (response && response.users) return response.users;
+      if (response && response.data) return response.data;
+      return response || [];
+    })
     .catch((error) => {
       console.error("Error getting All users:", error);
-      throw error;
+      // Try fallback without limit if it failed
+      return domo.get('/domo/users/v1').catch(() => []);
     });
 };
 
@@ -37,27 +45,43 @@ const GetUser = (userId) => {
     });
 };
 
+const COLLECTION_IDS = {
+  'Authorised_users': '7c4cb4f0-6ca8-47ff-9203-a12ea1ee6e46',
+  'authorised_users': '7c4cb4f0-6ca8-47ff-9203-a12ea1ee6e46',
+  'Users': '7c4cb4f0-6ca8-47ff-9203-a12ea1ee6e46',
+  'config': '5c4fb7b0-848f-466d-a789-34a2b6598993'
+};
+
 const CreateDocument = (collectionName, document) => {
-  console.log(document);
-  console.log(collectionName);
+  const collectionId = COLLECTION_IDS[collectionName] || collectionName;
+  console.log(`DomoApi: CreateDocument call on "${collectionName}" (ID: ${collectionId})`, document);
 
   return domo
-    .post(`${BASE_URL}/collections/${collectionName}/documents/`, {
+    .post(`${BASE_URL}/collections/${collectionId}/documents/`, {
       content: document,
     })
-    .then((response) => response)
+    .then((response) => {
+      console.log("DomoApi: Document created successfully", response);
+      return response;
+    })
     .catch((error) => {
-      console.error("Error creating document:", error);
+      console.error(`DomoApi: Error creating document in "${collectionName}":`, error);
       throw error;
     });
 };
 
 const ListDocuments = (collectionName) => {
+  const collectionId = COLLECTION_IDS[collectionName] || collectionName;
+  console.log(`DomoApi: Listing documents for "${collectionName}" (ID: ${collectionId})...`);
+  
   return domo
-    .get(`${BASE_URL}/collections/${collectionName}/documents/`)
-    .then((response) => response)
+    .get(`${BASE_URL}/collections/${collectionId}/documents/`)
+    .then((response) => {
+       console.log(`DomoApi: List success for "${collectionName}":`, response);
+       return response;
+    })
     .catch((error) => {
-      console.error("Error listing documents:", error);
+      console.error(`DomoApi: Error listing documents for "${collectionName}":`, error);
       throw error;
     });
 };
@@ -248,22 +272,6 @@ const GetFile = (fileId, revisionId) => {
     });
 };
 
-const ListAllUsers = async (
-  includeDetails = false,
-  limit = 100,
-  offset = 0
-) => {
-  try {
-    const response = await domo.get(
-      `/domo/users/v1?includeDetails=${includeDetails}&limit=${limit}&offset=${offset}`
-    );
-    return response;
-  } catch (error) {
-    console.error("Error listing users:", error);
-    throw error;
-  }
-};
-
 const partialupdateDocument = (collectionName, query, operation) => {
   const requestBody = {
     query: query,
@@ -304,7 +312,7 @@ const DomoApi = {
   // DownloadFile,
   GetFile,
   queryDocumentsWithAggregations,
-  ListAllUsers,
+  ListAllUsers: GetAllUser, // Backwards compatibility for now if needed (though already updated AccessControl)
   partialupdateDocument,
 };
 

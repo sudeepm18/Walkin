@@ -13,7 +13,12 @@
          "id": "5c4fb7b0-848f-466d-a789-34a2b6598993",
          "name": "config",
          "syncEnabled": false
+      },
+      {
+         "id": "7c4cb4f0-6ca8-47ff-9203-a12ea1ee6e46",
+         "name": "Authorised_users",
+         "syncEnabled": false
       }
    ],
-   "proxyId":"0de710a2-e1d5-45f9-bb3c-4c85a4f14379"
+   "proxyId": "0de710a2-e1d5-45f9-bb3c-4c85a4f14379"
 }

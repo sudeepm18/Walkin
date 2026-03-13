@@ -1,0 +1,77 @@
+# Walkin Portal - User Manual
+
+## Introduction
+The **Walkin Portal** is a high-performance recruitment management system designed for high-volume walk-in drives. It streamlines the entire process from candidate registration to the final offer, ensuring real-time tracking and data synchronization.
+
+---
+
+## 1. Getting Started: The Home Portal
+The Home screen is your central hub for all operational activities. From here, you can access the four primary modules:
+
+- **Add Candidate**: Synchronize walk-in data from external sources (Google Forms/Sheets).
+- **Add Interviewer**: Onboard technical panel members and map their expertise.
+- **Pre-Screen**: Manage early-stage processing (Orientation, GD, Aptitude).
+- **Dashboard**: Monitor live metrics and the candidate pipeline in real-time.
+
+---
+
+## 2. Candidate & Interviewer Management
+
+### Adding Candidates
+- Use the **Add Candidate** module to link external data sources.
+- Ensure Google Forms/Sheets are correctly connected to automate ingestion.
+- **Tip**: Verify sync status after each batch to avoid data gaps.
+
+### Managing Interviewers
+- Use the **Add Interviewer** module to register new panel members.
+- Expertise mapping allows for efficient scheduling during L1 and L2 rounds.
+
+---
+
+## 3. Pre-Screening Hub
+The Pre-Screening Hub is designed for high-efficiency bulk processing of candidates through the initial stages.
+
+### Workflow Stages
+The hub follows a linear progression:
+1. **Orientation**: Capture candidate agreement to terms and work conditions.
+2. **Group Discussion (GD)**: Manage bulk assessment of communication skills.
+3. **Aptitude**: Track assessment scores and set assignments.
+
+### Batch Controls
+- **ID Range Filtering**: Focus on specific groups of candidates by setting a "From ID" and "To ID" range.
+- **Bulk Updates**: Select multiple candidates at once and update their status to "Selected", "Hold", or "Rejected".
+- **Aptitude Management**: Assign specific "SETS" (1-5) to candidates and record their marks (0-25) directly.
+
+---
+
+## 4. Dashboard & Pipeline Tracking
+The Dashboard provides a 360-degree view of your recruitment drive.
+
+### Real-Time Metrics (KPIs)
+- **Total Footfall**: Total candidates registered.
+- **Selected**: Candidates who have cleared all rounds.
+- **Rejected**: Total candidates who did not meet requirements.
+- **Stage Metrics**: Real-time count of candidates currently in Orientation, GD, Aptitude, L1, L2, and HR.
+
+### Candidate Search & Details
+- **Search**: Quickly find candidates by Name or ID.
+- **Filters**: Filter the view by Role/Position or Experience (Experienced vs. Fresher).
+- **Candidate Drawer**: Click on any candidate to view their complete history, including timestamps and interviewer notes.
+- **Update Status**: Use the "Update" button to manually adjust a candidate's progress if needed.
+
+### Data Export
+- Use the **Export to Excel** button to download the current state of the candidate pipeline for offline reporting.
+
+---
+
+## 5. Operational Guidelines & Best Practices
+
+> [!IMPORTANT]
+> **Real-Time Sync**: The portal syncs data to the master sheet in real-time. Always check the "Last Sync" timestamp on the Dashboard.
+
+> [!TIP]
+> **Data Integrity**: Regularly remove duplicate registrations to keep metrics accurate.
+
+- **Process Flow**: Ensure interviewers are assigned before candidates move to L1/L2 rounds.
+- **Timestamps**: All actions are recorded in **IST** for consistency across the team.
+- **Manual Overrides**: If a sync fails, use the manual "Refresh" button on the Dashboard to re-fetch the latest data.

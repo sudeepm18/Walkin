@@ -1,12 +1,12 @@
 /* eslint-disable react/prop-types */
-import { createContext, useState, useEffect } from "react";
-import DomoApi from "./DomoAPI";
-
-export const UserContext = createContext();
+import { useState, useEffect } from "react";
+import DomoApi from "./domoAPI";
+import { UserContext } from "./UserContext";
 
 export const UserProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState("");
   const [currentUserId, setCurrentUserId] = useState("");
+  const [email, setEmail] = useState("");
   const [avatarKey, setAvatarKey] = useState("");
   const [customer, setCustomer] = useState("");
   const [host, setHost] = useState("");
@@ -20,12 +20,14 @@ export const UserProvider = ({ children }) => {
       if (!isUserFetched) {
         const userId = data?.userId;
         const displayName = data?.displayName;
+        const email = data?.email;
         const avatarKey = data?.avatarKey;
         const customer=data?.customer;
         const host=data?.host;
 
         setCurrentUser(displayName || "");
         setCurrentUserId(userId || "");
+        setEmail(email || "");
         setAvatarKey(avatarKey || "");
         setCustomer(customer || "");
         setHost(host || "");
@@ -45,6 +47,7 @@ export const UserProvider = ({ children }) => {
       value={{
         currentUser,
         currentUserId,
+        email,
         avatarKey,
         customer,
         host

@@ -1,9 +1,39 @@
+import { useState, useEffect, useContext } from 'react';
 import { FiLayout, FiGlobe, FiCpu, FiEdit3, FiShare2, FiLayers, FiCheckCircle, FiAlertTriangle, FiClock, FiChevronRight } from 'react-icons/fi';
 import FeatureCard from './FeatureCard';
 import logo from '../assets/logo.png';
+import { UserContext } from '../API/UserContext';
+import DomoApi from '../API/domoAPI';
 
 const Home = () => {
-  const features = [
+  const { email, currentUser } = useContext(UserContext);
+  const [isAuthorized, setIsAuthorized] = useState(false);
+  const adminEmails = ["sudip.shankar@gwcdata.ai", "pugal.manivelan@gwcteq.com"];
+
+  useEffect(() => {
+    const checkAccess = async () => {
+      console.log("Identity Check:", { email, currentUser, adminEmails });
+      // Grant full access ONLY if email matches one of the hardcoded admins
+      if (adminEmails.includes(email)) {
+        setIsAuthorized(true);
+        return;
+      }
+
+      try {
+        const authDocs = await DomoApi.ListDocuments('Authorised_users');
+        const authorized = authDocs?.some(doc => doc.content.email === email);
+        setIsAuthorized(authorized);
+      } catch (error) {
+        console.error("Error checking access:", error);
+      }
+    };
+
+    if (email) {
+      checkAccess();
+    }
+  }, [email]);
+
+  const allFeatures = [
     {
       title: "Add Candidate",
       description: "Connect external data sources (Google Form / Sheet) to automate candidate ingestion and synchronize walk-in data.",
@@ -37,6 +67,11 @@ const Home = () => {
       link: "/dashboard"
     }
   ];
+
+  const features = allFeatures.map(f => ({
+    ...f,
+    disabled: !isAuthorized && (f.title === "Add Candidate" || f.title === "Add Interviewer")
+  }));
 
   const guidelines = [
     {
@@ -100,7 +135,7 @@ const Home = () => {
       </div>
 
       {/* Hero Section */}
-      <div className="z-10 text-center max-w-4xl mb-12 px-4">
+      <div className="z-10 text-center max-w-4xl mb-12 px-4 relative">
         <h1 className="text-xl sm:text-3xl md:text-5xl font-[1000] mb-5 text-white tracking-tight leading-[1.1] whitespace-nowrap">
           Seamless <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-indigo-500">Recruitment</span> Management
         </h1>
