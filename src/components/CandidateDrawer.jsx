@@ -102,7 +102,10 @@ const CandidateDrawer = ({ candidate, isOpen, onClose }) => {
                   <FiBriefcase className="text-indigo-400 shrink-0" />
                   <div className="min-w-0">
                     <p className="text-[9px] font-black uppercase text-zinc-600">Experience</p>
-                    <p className="text-sm font-medium text-zinc-300 truncate">{candidate.isExp ? 'Experienced' : 'Fresher'}</p>
+                    <p className="text-sm font-medium text-zinc-300 truncate">
+                      {candidate.isExp ? 'Experienced' : 'Fresher'}
+                      {candidate.isExp && candidate['Experience duartion (in months)'] && ` • ${candidate['Experience duartion (in months)']} Months`}
+                    </p>
                   </div>
                 </div>
               </div>
