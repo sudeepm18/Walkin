@@ -1,4 +1,4 @@
-import { FiLayout, FiGlobe, FiCpu, FiEdit3, FiShare2, FiLayers, FiCheckCircle, FiAlertTriangle, FiClock,FiChevronRight } from 'react-icons/fi';
+import { FiLayout, FiGlobe, FiCpu, FiEdit3, FiShare2, FiLayers, FiCheckCircle, FiAlertTriangle, FiClock, FiChevronRight } from 'react-icons/fi';
 import FeatureCard from './FeatureCard';
 import logo from '../assets/logo.png';
 
@@ -81,9 +81,9 @@ const Home = () => {
     <div className="min-h-screen w-full bg-transparent text-white flex flex-col items-center px-4 sm:px-6 py-10 sm:py-16 relative overflow-x-hidden font-sans">
       {/* Background Logo Overlay */}
       <div className="fixed inset-0 z-0 flex items-center justify-center pointer-events-none">
-        <img 
-          src={logo} 
-          alt="Centric Background Logo" 
+        <img
+          src={logo}
+          alt="Centric Background Logo"
           className="w-[90%] sm:w-[70%] max-w-[550px] object-contain opacity-[0.1] scale-110"
         />
       </div>
@@ -101,8 +101,8 @@ const Home = () => {
 
       {/* Hero Section */}
       <div className="z-10 text-center max-w-4xl mb-12 px-4">
-        <h1 className="text-2xl sm:text-4xl md:text-5xl font-[1000] mb-5 text-white tracking-tight leading-[1.1]">
-          Seamless <span className="text-indigo-400">Recruitment</span> Management
+        <h1 className="text-xl sm:text-3xl md:text-5xl font-[1000] mb-5 text-white tracking-tight leading-[1.1] whitespace-nowrap">
+          Seamless <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-indigo-500">Recruitment</span> Management
         </h1>
         <p className="text-zinc-500 text-xs sm:text-sm md:text-base max-w-2xl mx-auto leading-relaxed font-medium">
           Empower your HR team with a high-performance tool built for high-volume walk-in drives. Track everything from GD to Offer.
