@@ -136,7 +136,7 @@ const Home = () => {
 
       {/* Hero Section */}
       <div className="z-10 text-center max-w-4xl mb-12 px-4 relative">
-        <h1 className="text-xl sm:text-3xl md:text-5xl font-[1000] mb-5 text-white tracking-tight leading-[1.1] whitespace-nowrap">
+        <h1 className="text-2xl sm:text-3xl md:text-5xl font-[1000] mb-5 text-white tracking-tight leading-[1.1]">
           Seamless <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-indigo-500">Recruitment</span> Management
         </h1>
         <p className="text-zinc-500 text-xs sm:text-sm md:text-base max-w-2xl mx-auto leading-relaxed font-medium">
@@ -180,7 +180,7 @@ const Home = () => {
       </div>
 
       <footer className="z-10 mt-auto py-8 text-center border-t border-white/5 w-full">
-        <p className="text-zinc-500 text-[9px] font-black tracking-[0.4em] uppercase ">
+        <p className="text-zinc-500 text-[10px] font-black tracking-[0.4em] uppercase">
           Powered by <span className="text-white">GWC DATA.AI</span>
         </p>
       </footer>

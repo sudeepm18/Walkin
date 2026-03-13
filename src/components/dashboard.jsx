@@ -18,7 +18,7 @@ const KPICard = ({ icon: Icon, label, value, colorClass, accentColor }) => (
       <Icon className={`w-5 h-5 sm:w-6 sm:h-6 ${colorClass}`} />
     </div>
     <div className="min-w-0 flex-1">
-      <p className="text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 truncate mb-1 sm:mb-1.5">{label}</p>
+      <p className="text-[10px] sm:text-[11px] font-black uppercase tracking-[0.2em] text-zinc-500 truncate mb-1 sm:mb-1.5">{label}</p>
       <h3 className="text-xl sm:text-2xl font-black text-white leading-none tracking-tight">{value}</h3>
     </div>
   </div>
@@ -33,7 +33,7 @@ const PositionCard = ({ title, count, breakdown, isActive, onClick }) => (
     <div className="flex items-center justify-between mb-4">
       <div className="min-w-0 pr-2">
         <h4 className={`text-xs sm:text-sm font-bold transition-colors truncate ${isActive ? 'text-indigo-400' : 'text-white group-hover:text-indigo-400'}`}>{title}</h4>
-        <p className="text-[9px] sm:text-[10px] text-zinc-500 font-bold mt-0.5">{count} Candidates</p>
+        <p className="text-[10px] text-zinc-500 font-bold mt-0.5">{count} Candidates</p>
       </div>
       <FiChevronRight className={`shrink-0 transition-all ${isActive ? 'text-indigo-400 translate-x-1' : 'text-zinc-600 group-hover:text-indigo-400 group-hover:translate-x-1'}`} />
     </div>
@@ -63,10 +63,10 @@ const CandidateCard = ({ ID, name, position, isExp, status, currentStage, lastCo
           <div className="min-w-0">
             <h4 className="text-base sm:text-lg font-black text-white tracking-tight leading-none mb-1.5 truncate">{name}</h4>
             <div className="flex flex-wrap items-center gap-1.5">
-              <span className="bg-blue-500/10 text-blue-400 text-[8px] font-black px-2 py-0.5 rounded-md tracking-widest uppercase border border-blue-500/20 truncate max-w-[120px]">
+              <span className="bg-blue-500/10 text-blue-400 text-[10px] font-black px-2 py-0.5 rounded-md tracking-widest uppercase border border-blue-500/20 truncate max-w-[120px]">
                 {position}
               </span>
-              <span className={`text-[8px] font-black px-2 py-0.5 rounded-md tracking-widest uppercase border ${
+              <span className={`text-[10px] font-black px-2 py-0.5 rounded-md tracking-widest uppercase border ${
                 isExp 
                   ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
                   : 'bg-zinc-500/10 text-zinc-400 border-zinc-500/20'
@@ -84,10 +84,10 @@ const CandidateCard = ({ ID, name, position, isExp, status, currentStage, lastCo
               'border-amber-500/30 text-amber-400'
             }`}>
               <FiCheckCircle size={10} className={status === 'Selected' ? 'animate-pulse' : ''} />
-              <span className="text-[9px] font-black uppercase tracking-[0.2em]">{status}</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.2em]">{status}</span>
             </div>
             {status !== 'Selected' && (
-              <p className="text-[8px] font-black uppercase tracking-[0.2em] text-zinc-500">
+              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-zinc-500">
                 {status === 'Rejected' ? (
                   <>REJECTED IN <span className="text-rose-400">{currentStage}</span></>
                 ) : !lastCompletedStage ? (
@@ -103,7 +103,7 @@ const CandidateCard = ({ ID, name, position, isExp, status, currentStage, lastCo
               e.stopPropagation();
               navigate(`/update-candidate?id=${ID}`);
             }}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[8px] font-black uppercase tracking-[0.2em] text-zinc-400 transition-all active:scale-95"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 transition-all active:scale-95"
           >
             <FiEdit3 /> Update
           </button>
@@ -133,7 +133,7 @@ const CandidateCard = ({ ID, name, position, isExp, status, currentStage, lastCo
                    stage.isCompleted ? <FiCheck size={10} strokeWidth={4} /> : 
                    <stage.icon size={11} className="opacity-30" />}
                 </div>
-                <span className={`text-[5.5px] font-black uppercase tracking-widest whitespace-nowrap ${stage.isRejected ? 'text-rose-500/50' : stage.isCompleted ? 'text-zinc-400' : 'text-zinc-800'}`}>
+                <span className={`text-[8.5px] font-black uppercase tracking-widest whitespace-nowrap ${stage.isRejected ? 'text-rose-500/50' : stage.isCompleted ? 'text-zinc-400' : 'text-zinc-800'}`}>
                   {stage.label}
                 </span>
               </div>
@@ -300,7 +300,7 @@ const Dashboard = () => {
 
           <div className="flex flex-wrap items-center gap-3">
             {lastSynced && !isSyncing && (
-              <span className="text-[8px] font-black uppercase tracking-widest text-zinc-600 hidden md:inline">Last Sync: {lastSynced}</span>
+              <span className="text-[10px] font-black uppercase tracking-widest text-zinc-600 hidden md:inline">Last Sync: {lastSynced}</span>
             )}
             <button onClick={handleManualSync} disabled={isSyncing} className="w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center rounded-xl bg-[#0d1117] border border-white/10 text-zinc-400 hover:text-white transition-all">
               <FiRefreshCw className={isSyncing ? 'animate-spin' : ''} />
@@ -366,7 +366,7 @@ const Dashboard = () => {
               <div className="flex items-center gap-3">
                 <button 
                   onClick={() => setShowAllCandidates(!showAllCandidates)} 
-                  className={`text-[9px] font-black uppercase transition-all px-2 py-1 rounded-md border ${
+                  className={`text-[10px] font-black uppercase transition-all px-2 py-1 rounded-md border ${
                     showAllCandidates 
                       ? 'bg-indigo-600/20 border-indigo-500/30 text-indigo-400' 
                       : 'bg-white/5 border-white/10 text-zinc-500 hover:text-white'

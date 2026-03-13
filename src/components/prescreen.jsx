@@ -199,14 +199,14 @@ const PreScreen = () => {
             <FiArrowLeft size={16} />
           </button>
           <div className="min-w-0">
-            <h1 className="text-sm sm:text-lg lg:text-2xl font-[1000] tracking-tight truncate">PRE-SCREENING <span className="text-indigo-500">HUB</span></h1>
-            <p className="text-[7px] sm:text-[9px] text-zinc-500 font-black tracking-widest uppercase">Bulk Processor</p>
+            <h1 className="text-sm sm:text-lg lg:text-2xl font-[1000] tracking-tight truncate uppercase">PRE-SCREENING <span className="text-indigo-500">HUB</span></h1>
+            <p className="text-[10px] text-zinc-500 font-bold tracking-widest uppercase">Bulk Processor</p>
           </div>
         </div>
 
         <div className="hidden xl:flex bg-black/40 p-1 rounded-2xl border border-white/5 gap-0.5">
           {tabs.map(tab => (
-            <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`flex items-center gap-2 px-5 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${activeTab === tab.id ? 'bg-indigo-600 text-white' : 'text-zinc-500'}`}>
+            <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`flex items-center gap-2 px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === tab.id ? 'bg-indigo-600 text-white' : 'text-zinc-500'}`}>
               <tab.icon size={12} /> {tab.label}
             </button>
           ))}
@@ -227,7 +227,7 @@ const PreScreen = () => {
         <aside className={`fixed inset-y-0 right-0 w-[320px] sm:w-[400px] bg-[#090b10] border-l lg:border-l-0 lg:border-r border-white/5 p-6 sm:p-8 z-40 transition-transform duration-500 lg:static lg:translate-x-0 overflow-hidden ${showSidebar ? 'translate-x-0' : 'translate-x-full'}`}>
           <div className="space-y-8">
             <div className="xl:hidden flex flex-col gap-2 mb-6">
-              <label className="text-[9px] font-black uppercase text-zinc-500 tracking-widest">Workflow Step</label>
+              <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Workflow Step</label>
               <div className="grid grid-cols-3 gap-1 bg-black/40 p-1 rounded-xl border border-white/5">
                 {tabs.map(tab => (
                   <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`flex items-center justify-center py-2.5 rounded-lg transition-all ${activeTab === tab.id ? 'bg-indigo-600 text-white' : 'text-zinc-600'}`}>
@@ -238,7 +238,7 @@ const PreScreen = () => {
             </div>
 
             <div className="space-y-4">
-              <label className="text-[9px] font-black uppercase text-zinc-500 tracking-widest">Search</label>
+              <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Search</label>
               <div className="relative">
                 <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600" />
                 <input type="text" placeholder="ID or Name..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full h-12 bg-white/2 border border-white/5 rounded-xl pl-11 pr-4 text-xs outline-none focus:border-indigo-500/50" />
@@ -246,7 +246,7 @@ const PreScreen = () => {
             </div>
 
             <div className="space-y-4">
-              <label className="text-[9px] font-black uppercase text-zinc-500 tracking-widest">Filter by Status</label>
+              <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Filter by Status</label>
               <div className="relative group">
                 <FiActivity className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600 group-focus-within:text-indigo-400" />
                 <select
@@ -264,14 +264,14 @@ const PreScreen = () => {
             </div>
 
             <div className="space-y-4">
-              <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest">
+              <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest">
                 <span className="text-zinc-500">Batch Control</span>
                 <span className="text-emerald-400">{selectedIds.size} Ready</span>
               </div>
               <div className="bg-[#0d1117] border border-white/5 rounded-3xl p-6">
                 <div className="flex justify-between items-center mb-6">
                   <div className="flex flex-col min-w-0">
-                    <span className="text-[7px] font-black text-zinc-600 uppercase mb-1">From ID</span>
+                    <span className="text-[9px] font-black text-zinc-600 uppercase mb-1">From ID</span>
                     <input
                       type="number"
                       value={startRange}
@@ -280,7 +280,7 @@ const PreScreen = () => {
                     />
                   </div>
                   <div className="flex flex-col items-end min-w-0">
-                    <span className="text-[7px] font-black text-zinc-600 uppercase mb-1">To ID</span>
+                    <span className="text-[9px] font-black text-zinc-600 uppercase mb-1">To ID</span>
                     <input
                       type="number"
                       value={endRange}
@@ -302,7 +302,7 @@ const PreScreen = () => {
             </div>
 
             <div className="space-y-4">
-              <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest">
+              <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest">
                 <span className="text-zinc-500">ID Quick Toggle</span>
                 <span className="text-indigo-400">{selectedIds.size} / {filteredCandidates.length} Selected</span>
               </div>
@@ -312,7 +312,7 @@ const PreScreen = () => {
                     <button 
                       key={c.ID}
                       onClick={() => toggleSelection(c.ID)}
-                      className={`h-7 px-2.5 rounded-lg text-[9px] font-black transition-all flex items-center justify-center border ${
+                      className={`h-7 px-2.5 rounded-lg text-[10px] font-black transition-all flex items-center justify-center border ${
                         selectedIds.has(c.ID) 
                           ? 'bg-indigo-600 border-indigo-500 text-white shadow-[0_0_15px_-5px_rgba(79,70,229,0.5)]' 
                           : 'bg-white/2 border-white/5 text-zinc-600 hover:border-white/20 hover:text-zinc-400'
@@ -324,7 +324,7 @@ const PreScreen = () => {
                   {filteredCandidates.length === 0 && (
                     <div className="w-full flex flex-col items-center justify-center py-8 opacity-20">
                       <FiUsers size={24} className="mb-2" />
-                      <span className="text-[8px] font-black uppercase tracking-widest">Empty Stream</span>
+                      <span className="text-[10px] font-black uppercase tracking-widest">Empty Stream</span>
                     </div>
                   )}
                 </div>
@@ -332,7 +332,7 @@ const PreScreen = () => {
             </div>
 
             {message.text && (
-              <div className={`p-4 rounded-xl text-[9px] font-black uppercase text-center border ${message.type === 'error' ? 'bg-rose-500/10 border-rose-500/20 text-rose-500' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500'}`}>
+              <div className={`p-4 rounded-xl text-[10px] font-black uppercase text-center border ${message.type === 'error' ? 'bg-rose-500/10 border-rose-500/20 text-rose-500' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500'}`}>
                 {message.text}
               </div>
             )}
@@ -350,9 +350,9 @@ const PreScreen = () => {
             <div className="flex flex-col md:flex-row md:items-center gap-4 bg-white/2 border border-white/5 p-3 rounded-2xl px-5">
               <div className="flex items-center gap-3 shrink-0">
                 <div className="flex items-center gap-1">
-                  <button onClick={() => handleBulkUpdate('Selected')} className="h-10 px-4 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 rounded-xl text-[9px] font-black uppercase tracking-widest text-emerald-400 flex items-center gap-2 transition-all"><FiCheckCircle /> Select</button>
-                  <button onClick={() => handleBulkUpdate('Pending')} className="h-10 px-4 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 rounded-xl text-[9px] font-black uppercase tracking-widest text-amber-400 flex items-center gap-2 transition-all"><FiClock /> Hold</button>
-                  <button onClick={() => handleBulkUpdate('Rejected')} className="h-10 px-4 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 rounded-xl text-[9px] font-black uppercase tracking-widest text-rose-400 flex items-center gap-2 transition-all"><FiXCircle /> Reject</button>
+                  <button onClick={() => handleBulkUpdate('Selected')} className="h-10 px-4 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 rounded-xl text-[10px] font-black uppercase tracking-widest text-emerald-400 flex items-center gap-2 transition-all"><FiCheckCircle /> Select</button>
+                  <button onClick={() => handleBulkUpdate('Pending')} className="h-10 px-4 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 rounded-xl text-[10px] font-black uppercase tracking-widest text-amber-400 flex items-center gap-2 transition-all"><FiClock /> Hold</button>
+                  <button onClick={() => handleBulkUpdate('Rejected')} className="h-10 px-4 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 rounded-xl text-[10px] font-black uppercase tracking-widest text-rose-400 flex items-center gap-2 transition-all"><FiXCircle /> Reject</button>
                 </div>
               </div>
               {activeTab === 'Aptitude' && (
@@ -386,13 +386,13 @@ const PreScreen = () => {
                   <div className={`shrink-0 w-10 h-10 rounded-xl flex items-center justify-center font-black text-[10px] ${cand.isSelected ? 'bg-indigo-600 text-white' : 'bg-white/5 text-zinc-500'}`}>{cand.ID}</div>
                   <div className="min-w-0 pr-4">
                     <h4 className="text-xs font-bold text-white truncate">{cand.Name}</h4>
-                    <p className="text-[9px] text-zinc-600 font-medium truncate">{cand['Role Applied For?']}</p>
+                    <p className="text-[10px] text-zinc-600 font-medium truncate">{cand['Role Applied For?']}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 mt-4 sm:mt-0 sm:ml-auto pt-4 sm:pt-0 border-t sm:border-t-0 border-white/5 shrink-0" onClick={e => e.stopPropagation()}>
                   {/* Status Dropdown */}
                   <div className="flex flex-col gap-1">
-                    <label className="text-[7px] font-black uppercase text-zinc-600 tracking-tighter">Round Status</label>
+                    <label className="text-[9px] font-black uppercase text-zinc-600 tracking-tighter">Round Status</label>
                     <select 
                       value={cand[currentStatusField] || "Pending"}
                       onChange={async (e) => {
@@ -425,7 +425,7 @@ const PreScreen = () => {
                   {activeTab === 'Aptitude' && (
                     <div className="flex items-center gap-2 border-l border-white/5 pl-3">
                       <div className="flex flex-col gap-1">
-                        <label className="text-[7px] font-black text-zinc-600">Score</label>
+                        <label className="text-[9px] font-black text-zinc-600">Score</label>
                         <input 
                           type="number"
                           min="0" max="25"
@@ -447,7 +447,7 @@ const PreScreen = () => {
                         />
                       </div>
                       <div className="flex flex-col gap-1">
-                        <label className="text-[7px] font-black text-zinc-600">SET</label>
+                        <label className="text-[9px] font-black text-zinc-600">SET</label>
                         <select 
                           value={cand['Aptitude SET'] || ""} 
                           onChange={async (e) => { 
